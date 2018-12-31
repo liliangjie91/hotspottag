@@ -67,7 +67,7 @@ def list2txt(l,path):
         for i in l:
             if isinstance(i,(int,float,long)):
                 i = str(i)
-            f.write(i.strip().lower().encode('utf-8', 'ignore')+'\n')
+            f.write(i.strip().encode('utf-8', 'ignore')+'\n')
 
 def load2list(path,to1column=False,separator=None,get1column=-1,start=0):
     '''
