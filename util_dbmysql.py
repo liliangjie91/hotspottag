@@ -36,7 +36,6 @@ class mysql(object):
         return result
 
     def select(self, table, column='*', condition=''):
-        condition = ' where ' + condition if condition else None
         if condition:
             sql = "SELECT %s from %s %s" % (column, table, condition)
         else:
@@ -87,9 +86,10 @@ class mysql(object):
             vv=','.join(v)
             try:
                 sql = "insert into %s (%s) VALUES (%s)" % (table, field,vv)
-                self._cursor.execute(sql)
+                print sql
+                self._cursor.execute(sql.encode('utf8'))
             except MySQLdb.Error, e:
-                print 'insert fail: %s' %vv
+                print e
         self._conn.commit()
         return self.affected_num()
 
@@ -128,6 +128,12 @@ class mysql(object):
         self._conn.commit()
         return self.affected_num()  # 返回受影响行数
 
+    def starfrom0(self,table):
+        sql="truncate table %s" %table
+        self._cursor.execute(sql)
+        self._conn.commit()
+        return self.affected_num()
+
     def rollback(self):
         self._conn.rollback()
 
@@ -147,22 +153,28 @@ class mysql(object):
 
 if __name__ == '__main__':
     db = mysql()
-    createsql='''create table test03(
+    createsql='''create table papertag(
+              fid INT NOT NULL AUTO_INCREMENT,
               filename VARCHAR(20) NOT NULL PRIMARY KEY,
               title VARCHAR(150) NOT NULL,
-              fieldcode VARCHAR(30),
-              field VARCHAR(50),
-              tag VARCHAR(150),
-              kwords_jb VARCHAR(150),
-              abstract VARCHAR(3000),
-              abstract_seg VARCHAR(3000)
+              fieldcode VARCHAR(100),
+              field0 VARCHAR(100),
+              field VARCHAR(100),
+              tag VARCHAR(300),
+              kwords_jb VARCHAR(300),
+              abstract text,
+              abstract_seg text,
+              key(fid)
               )ENGINE=InnoDB DEFAULT CHARSET=utf8'''
 
-    db.query(createsql)
+    # db.query(createsql)
     # print db.select('paper')
     # print db.select('msg','id,ip,domain','id>2')
     # print db.affected_num()
-
+    a=db.select("papertag",condition="limit 2")
+    for l in a:
+        for s in l:
+            print s
     # tdict = {
     #     'filename':['llj1234555.hn','ll001234.hn'],
     #     'downtime':['10','5'],
