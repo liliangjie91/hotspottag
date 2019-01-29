@@ -188,14 +188,16 @@ def run_single_train(argslist, inputpath, mnameprefix='test', justgetname=False)
 
 def run_train(indatapat,mnameprefix='test'):
     #        dim,win,min,itr,sg,hs,neg
-    argls = [[300, 5, 3, 5, 0, 0, 5],
-             [300, 8, 1, 5, 1, 0, 5]]
+    # argls = [[300, 5, 2, 5, 0, 0, 5],
+    #          [300, 8, 2, 5, 1, 0, 5]]
+    argls = [[300, 8, 2, 5, 1, 0, 5]]
     for argl in argls:
         modelname = run_single_train(argl, inputpath=indatapat,mnameprefix=mnameprefix ,justgetname=False)
 
 
 if __name__ == '__main__':
-    indatapath=path.path_dataseg+'/log201811/kws'
-    run_train(indatapath,mnameprefix="kws1811")
+    indatapath=path.path_dataseg+'/kws_raw'
+    print indatapath
+    run_train(indatapath,mnameprefix="kws1811_raw")
 
 

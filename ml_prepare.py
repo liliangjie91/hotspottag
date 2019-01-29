@@ -57,7 +57,7 @@ def load_vec(vecfilepath,norm=True):
         vect.init_sims() #做向量归一化即生成vectors_norm
     return vect
 
-def get_kwsfromfn_bycode(dic_code_fns,fn_kws,respath=None):
+def get_kwsfromfn_bycode(dic_code_fns,fn_kws,respath=None,topkw=0):
     '''
     根据子栏目代吗-fn文件和fn-关键词文件，获取子栏目代码-关键词文件
     :param dic_code_fns: 
@@ -73,7 +73,10 @@ def get_kwsfromfn_bycode(dic_code_fns,fn_kws,respath=None):
         tmpfns=dic_code_fns[k]
         for fn in tmpfns:
             if fn_kws.has_key(fn):
-                tmpkws.extend(fn_kws[fn])
+                if topkw:
+                    tmpkws.extend(fn_kws[fn][:topkw])
+                else:
+                    tmpkws.extend(fn_kws[fn])
         res[k]=tmpkws
     if respath:
         util.savejson(respath,res)
@@ -89,16 +92,18 @@ def get_w_v_all(vecfilepath):
 
 def get_w_v_bycode(vecfilepath,dic_code_kws,respath):
     '''
-    
-    :param vecfilepath: 
+    根据词向量和专题子栏目代码-关键词字典获取每个子栏目代码下的关键词及其向量
+    :param vecfilepath: 词向量模型对应的词向量
     :type vecfilepath: str
-    :param dic_code_kws: 
+    :param dic_code_kws: key：专题子栏目代码 value：该代码下所有的关键词
     :type dic_code_kws: dict
     :return: 
     :rtype: 
     '''
     vect = load_vec(vecfilepath)
     vect.init_sims()
+    if not os.path.exists(respath):
+        os.mkdir(respath)
     for k in dic_code_kws.keys():
         print("for code %s" %k)
         if '_' in k:
@@ -113,7 +118,7 @@ def get_w_v_bycode(vecfilepath,dic_code_kws,respath):
             print("file %s already exists,skip code %s..." %(resfileword,k))
             continue
         curkws=dic_code_kws[k]
-        if len(curkws)>100:
+        if len(curkws)>50:
             words=[]
             vecs=[]
             curkws_uniq=list(set(curkws))   #去重
@@ -147,10 +152,41 @@ def load_allcresjson(basefolder,aim_pattern):
     logger.info("loading all cres dic ok.")
     return allcresdic
 
+def get_goodfn_byfn(rawfns,respath):
+    #选择优质杂志的文献
+    goodj = util.load2dic(path.good_journal)
+    if isinstance(rawfns,(str,unicode)):
+        fns=util.load2list(rawfns)
+    else:
+        fns=rawfns
+    res=[]
+    cnt=-1
+    for fn in fns:
+        cnt+=1
+        if cnt%500000==0:
+            print cnt
+        if fn[:4] in goodj or fn[-3:] == '.NH':
+            res.append(fn)
+    util.list2txt(res,respath)
+
+def get_highqsample(goodfns,input1,respath):
+    gfns=util.load2list(goodfns)
+    resdic={}
+    indic=util.load2dic(input1,interactor=' ')
+    cnt=-1
+    for fn in gfns:
+        cnt+=1
+        if cnt%500000==0:
+            print cnt
+        if fn in indic:
+            resdic[fn]=indic[fn]
+    if resdic:
+        util.json2txt(resdic,respath,interactor=' ')
 
 
 if __name__ == '__main__':
-    get_samplevec_gensimmodel(path.path_model + '/d2v_udownhighq5wposi_d300w5minc3iter30_dmns/d2v_udownhighq5wposi_d300w5minc3iter30_dmns.dv',
-                              path.path_model + '/d2v_highq5w_l1t1_d300w5minc3iter30_dmns/d2v_highq5w_l1t1_d300w5minc3iter30_dmns.dv',
-                              path.path_datahighq5w + '/sample_highq5w_neg.txt')
-
+    # get_samplevec_gensimmodel(path.path_model + '/d2v_udownhighq5wposi_d300w5minc3iter30_dmns/d2v_udownhighq5wposi_d300w5minc3iter30_dmns.dv',
+    #                           path.path_model + '/d2v_highq5w_l1t1_d300w5minc3iter30_dmns/d2v_highq5w_l1t1_d300w5minc3iter30_dmns.dv',
+    #                           path.path_datahighq5w + '/sample_highq5w_neg.txt')
+    # get_goodfn_byfn(path.path_dataraw+'/fns1811',path.path_dataraw+'/fns1811ingoodj')
+    get_highqsample(path.path_dataraw+'/fns1811ingoodj',path.path_dataraw+'/fn_code_1811_seg',path.path_dataraw+'/highqpaper/fn_code_1811_seg')

@@ -13,6 +13,31 @@ logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 bianma='utf8'
 
+
+def get_code_field(code,dic_codefield):
+    '''
+    获取专题子栏目代码对应的中文解释
+    :param code: 专题子栏目代码，可能是由分号隔开的多个
+    :type code: str
+    :param dic_codefield: 专题子栏目代码解释字典
+    :type dic_codefield:dict 
+    :return: 
+    :rtype: 
+    '''
+    codes = code.strip(';').split(';')
+    l0, l1 = [], []
+    for c in codes:
+        tmp0=dic_codefield[c] if c in dic_codefield else "NULL"
+        if '_' in c and c[:c.find('_')] in dic_codefield:
+            tmp1=dic_codefield[c[:c.find('_')]]
+        else:
+            tmp1=tmp0
+        l0.append(tmp0)
+        l1.append(tmp1)
+    res0 = ';'.join(l0)
+    res1 = ';'.join(l1)
+    return res0,res1
+
 def getfileinfolder(folderpath, prefix=None, recurse=False, sort=True, maxdepth=3, curdepth=0):
     '''
     返回文件夹内符合prefix前缀的文件名
@@ -122,15 +147,23 @@ def loadjson(path):
         res=json.load(f)
     return res
 
-def json2txt(path,respath):
-    logger.info("loading json file : %s" %path)
-    f = codecs.open(path)
-    d=json.load(f)
-    f.close()
+def json2txt(jfile, respath, interactor=':'):
+    #json文件转为txt，json的value默认是list形式
+    if isinstance(jfile, (str, unicode)):
+        logger.info("loading json file : %s" % jfile)
+        f = codecs.open(jfile)
+        d=json.load(f)
+        f.close()
+    else:
+        d=jfile
     logger.info("writing txt file : %s" % respath)
     with codecs.open(respath,'a+',encoding=bianma) as ff:
         for k in d.keys():
-            l=k+' : '+' '.join(d[k])+'\n'
+            v=d[k]
+            if isinstance(v,list):
+                l=k+interactor+' '.join(v)+'\n'
+            else:
+                l = k + interactor + v + '\n'
             ff.write(l)
 
 def printjson(j,limit=10):
@@ -189,7 +222,7 @@ def load2dic_02(path,separator=None):
     print("all keys : %d all fn : %d" % (len(res),cnt))
     return res
 
-def load2dic(path, separator=None):
+def load2dic(path, separator=None,value2list=False,interactor=';'):
     '''
     把文件加载成字典。其中，文件每行第一个元素是key，后续元素组成列表做value
     :param path: 
@@ -205,10 +238,11 @@ def load2dic(path, separator=None):
                 ll = l.strip().split(separator)
                 if len(ll)<2:
                     continue
-                elif len(ll) == 2:
-                    res[ll[0]] = ll[1]
                 else:
-                    res[ll[0]]=ll[1:]
+                    if value2list:
+                        res[ll[0]]=ll[1:]
+                    else:
+                        res[ll[0]]=interactor.join(ll[1:])
     print("all lines : %d" %len(res))
     return res
 

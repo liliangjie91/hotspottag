@@ -3,7 +3,17 @@
 # Created by lljzhiwang on 2018/12/28 
 import MySQLdb
 import util_path as myconf
+import logging
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler("./logs/mysql01.log")
+ch = logging.StreamHandler()
+formatter=logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+# logger.addHandler(ch)
 class mysql(object):
     """docstring for mysql"""
 
@@ -56,8 +66,11 @@ class mysql(object):
         vs="%s,"*len(field0)
         vs="(%s)" %(vs[:-1])
         sql +=vs
-        self._cursor.executemany(sql,values)
-        self._conn.commit()
+        try:
+            self._cursor.executemany(sql,values)
+            self._conn.commit()
+        except MySQLdb.Error, e:
+            print e
         return self.affected_num()
 
     def insertmany_bylist(self, table, fields, values):
@@ -71,8 +84,12 @@ class mysql(object):
         vs="%s,"*len(fields)
         vs="(%s)" %(vs[:-1])
         sql +=vs
-        self._cursor.executemany(sql,value)
-        self._conn.commit()
+        try:
+            self._cursor.executemany(sql,value)
+            self._conn.commit()
+        except MySQLdb.Error, e:
+            print e
+
         return self.affected_num()
 
     def insertmany_byfor(self, table, fields, values):
@@ -86,10 +103,9 @@ class mysql(object):
             vv=','.join(v)
             try:
                 sql = "insert into %s (%s) VALUES (%s)" % (table, field,vv)
-                print sql
                 self._cursor.execute(sql.encode('utf8'))
             except MySQLdb.Error, e:
-                print e
+                badfn=v[0]
         self._conn.commit()
         return self.affected_num()
 
@@ -167,14 +183,14 @@ if __name__ == '__main__':
               key(fid)
               )ENGINE=InnoDB DEFAULT CHARSET=utf8'''
 
-    # db.query(createsql)
+    db.query(createsql)
     # print db.select('paper')
     # print db.select('msg','id,ip,domain','id>2')
     # print db.affected_num()
-    a=db.select("papertag",condition="limit 2")
-    for l in a:
-        for s in l:
-            print s
+    #a=db.select("papertag",condition="limit 2")
+    #for l in a:
+    #    for s in l:
+    #        print s
     # tdict = {
     #     'filename':['llj1234555.hn','ll001234.hn'],
     #     'downtime':['10','5'],

@@ -6,6 +6,7 @@ cf = ConfigParser.ConfigParser()
 cf.read("./config.ini")
 # 输出文本的路径，为防止中文路径乱码，使用UNICODE编码
 path_dataroot=cf.get("path", "datapath")
+path_datacluster=cf.get("path", "datacluster")
 path_dataraw=cf.get("path", "datarawpath")
 path_dataseg=cf.get("path", "datasegpath")
 path_datagood=cf.get("path", "goodpath")
@@ -24,7 +25,7 @@ stop_words_path = cf.get("dict", "stop_words_path")
 kbase_dict_path = cf.get("dict", "kbase_dict_path")
 idf_dict_path = cf.get("dict", "idf_path")
 jieba_dict_path = cf.get("dict", "jieba_dict_path")
-
+good_journal = cf.get("dict","goodjournal")
 #mysql conf
 mysqlhost = cf.get("mysql","host")
 mysqluser = cf.get("mysql","user")

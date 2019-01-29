@@ -618,7 +618,7 @@ class PooledKBase(object):
 if __name__ == "__main__":
 
     """for kbase test"""
-    import uniout, time
+    # import uniout, time
 
     # """测试ksql语句"""
     # ksql = u'select * from SYS_AUTHOR_INSTITUTION_NAME where CODE=00000014 09540005'

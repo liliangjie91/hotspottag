@@ -214,7 +214,7 @@ def single_running(path,respath):
         print("dong %d th file" %i)
         seg4file_book(f, respath)
 
-def parallel_running(path):
+def parallel_running(path,cpucnt=10):
     """
     多进程并将对应结果集写入共享资源，维持执行的进程总数，当一个进程执行完毕后会添加新的进程进去(非阻塞)
     :param path: 文本分割后的路径
@@ -223,9 +223,9 @@ def parallel_running(path):
     :rtype: list
     """
     from multiprocessing import Pool
-    infiles = util.getfileinfolder(path, prefix='fn_summery1811_spli')
+    infiles = util.getfileinfolder(path, prefix='1811')
     logger.info("input folder is %s , get %d files in this folder" %(path,len(infiles)))
-    num_cpus = 20   # 直接利用multiprocessing.cpu_count()
+    num_cpus = cpucnt   # 直接利用multiprocessing.cpu_count()
     pool = Pool(num_cpus)
     pool.map(wrap, infiles)
     pool.close()
@@ -247,11 +247,12 @@ def wrap(inpath):
 if __name__ == '__main__':
     basepath=r'./data'
     # rawdatapath=basepath+r'/data_raw/jinyongquanji'
-    segdatapath=basepath+r'/data_seg/log201811/summery4seg'
+    segdatapath=basepath+r'/data_seg/title'
     # seg4file(rawdatapath,segdatapath)
     # seg4file_book(tlbbpath, segdatapathtmp)
     # seg4file_1line1text(Path.path_datahighq5w+'/fn18_5w_summery.txt',
     #                     Path.path_dataseg + '/sumery_highq5w',
     #                     resprefix='_1l1t',to1line=True,hastitle=True)
     parallel_running(segdatapath)
+    # seg4file_1line1text(segdatapath,'_seg',to1line=True,hastitle=True)
     # single_running(rawdatapath,segdatapath)
