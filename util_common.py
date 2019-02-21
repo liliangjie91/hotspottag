@@ -149,7 +149,7 @@ def loadjson(path):
 
 def json2txt(jfile, respath, interactor=':'):
     #json文件转为txt，json的value默认是list形式
-    if isinstance(jfile, (str, unicode)):
+    if isinstance(jfile, str):
         logger.info("loading json file : %s" % jfile)
         f = codecs.open(jfile)
         d=json.load(f)
@@ -197,6 +197,7 @@ def fieldcode_precess(s):
 
 def load2dic_02(path,separator=None):
     #把文件加载成字典。文件中每行第一个元素是value，后续元素分别是key
+    #例：abcd AA BB   则输出 {AA:abcd,BB:abcd}
     logger.info("loading file2dic_02 : %s" % path)
     res = {}
     cnt=0
@@ -204,7 +205,7 @@ def load2dic_02(path,separator=None):
         with codecs.open(path, 'rU', encoding=bianma, errors='replace') as f:
             for l in f:
                 if cnt%1000000==0:
-                    print cnt
+                    print(cnt)
                 cnt+=1
                 ll = l.strip().split()
                 if len(ll) > 1:
@@ -224,7 +225,8 @@ def load2dic_02(path,separator=None):
 
 def load2dic(path, separator=None,value2list=False,interactor=';'):
     '''
-    把文件加载成字典。其中，文件每行第一个元素是key，后续元素组成列表做value
+    把文件加载成字典。其中，文件每行第一个元素是key，后续元素组成列表或字符串做value
+    例：abcd AA BB   则输出 {abcd:[AA,BB]} or {abcd:'AA;BB'}
     :param path: 
     :param separator: 
     :return: 

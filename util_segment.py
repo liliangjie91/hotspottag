@@ -20,7 +20,7 @@ class SentenceSegmentation(object):
         :param delimiters: 分割句子的符号集,也可选（delimiters=u'?!;？！。；…\n'）
         :type delimiters: unicode string
         """
-        self.delimiters = unicode(delimiters)
+        self.delimiters = delimiters
 
     @staticmethod
     def has_chinese_character(content):

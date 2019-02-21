@@ -137,7 +137,7 @@ def run02():
     # vecpath = path.path_model + '/w2v_kws1811_raw_d300w8minc2iter5_sgns/w2v_kws1811_raw_d300w8minc2iter5_sgns.normwv'
     fn_kwords_path = path.path_dataroot + '/data_raw/highqpaper/fn_kws_1811'
     fn_fcode_path = path.path_dataroot + '/data_raw/highqpaper/fn_code_1811_seg'
-    print fn_fcode_path
+    print(fn_fcode_path)
     codekws_path = path.path_dataroot + '/data_raw/highqpaper/ulog1811_code_kws_top3.json'
     clusterpath = path.path_dataroot + '/cluster/w2vkw1811_sgns_code_highq/data_wv_top3'
     print("\n\n**************cf=%s*****************\n\n" %clusterpath)

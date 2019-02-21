@@ -155,7 +155,7 @@ def load_allcresjson(basefolder,aim_pattern):
 def get_goodfn_byfn(rawfns,respath):
     #选择优质杂志的文献
     goodj = util.load2dic(path.good_journal)
-    if isinstance(rawfns,(str,unicode)):
+    if isinstance(rawfns,str):
         fns=util.load2list(rawfns)
     else:
         fns=rawfns
@@ -164,7 +164,7 @@ def get_goodfn_byfn(rawfns,respath):
     for fn in fns:
         cnt+=1
         if cnt%500000==0:
-            print cnt
+            print(cnt)
         if fn[:4] in goodj or fn[-3:] == '.NH':
             res.append(fn)
     util.list2txt(res,respath)
@@ -177,7 +177,7 @@ def get_highqsample(goodfns,input1,respath):
     for fn in gfns:
         cnt+=1
         if cnt%500000==0:
-            print cnt
+            print(cnt)
         if fn in indic:
             resdic[fn]=indic[fn]
     if resdic:

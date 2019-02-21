@@ -1,8 +1,9 @@
 # encoding=utf-8
-import ConfigParser
+from configparser import ConfigParser
+
 
 # 读取配置文件
-cf = ConfigParser.ConfigParser()
+cf = ConfigParser()
 cf.read("./config.ini")
 # 输出文本的路径，为防止中文路径乱码，使用UNICODE编码
 path_dataroot=cf.get("path", "datapath")

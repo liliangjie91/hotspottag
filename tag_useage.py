@@ -25,7 +25,7 @@ def write2mysqlbylist(startfrom=0,count=0):
     for index,key in enumerate(fn_title.keys()):
         cnt += 1
         if cnt%10000==0:
-            print cnt,realyget
+            print(cnt,realyget)
         if cnt<startfrom:
             continue
         if count:
@@ -49,7 +49,7 @@ def write2mysqlbylist(startfrom=0,count=0):
             tmpfield0.append("'%s'" %res0)
             tmpfield1.append("'%s'" %res1)
     if tmpfn:
-        print "rest res..."
+        print("rest res...")
         values = [tmpfn, tmptitle, tmpkws, tmpcode ,tmpfield0, tmpfield1,tmpsum]
         db.insertmany_bylist(tablename, fields, values)
     print('insert cnt : %d' %realyget)
@@ -73,7 +73,7 @@ def write2mysqlbyfor(startfrom=0,count=0):
     for index,key in enumerate(fn_title.keys()):
         cnt += 1
         if cnt%100000==0:
-            print cnt,realyget
+            print(cnt,realyget)
         if cnt<startfrom:
             continue
         if count:
@@ -108,7 +108,7 @@ def write2mysqlbyfor(startfrom=0,count=0):
             tmpfield0.append("'%s'" %res0)
             tmpfield1.append("'%s'" %res1)
     if tmpfn:
-        print "rest res..."
+        print("rest res...")
         values = [tmpfn, tmptitle, tmpkws, tmpcode ,tmpfield0, tmpfield1,tmpsum]
         db.insertmany_bylist(tablename, fields, values)
     print('insert cnt : %d' %realyget)

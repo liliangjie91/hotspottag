@@ -96,7 +96,7 @@ def print_relationsimi(model,l,top=10):
         result = model.most_similar([a,d],[b],topn=top)
         for e in result:
             print("%s : %.3f" % (e[0], e[1]))
-    except KeyError, e:
+    except KeyError:
         print("some word is not in the model!")
 
 def print_mostsimi(model, wordlist, annoyindex=None,top=10):
@@ -118,7 +118,7 @@ def print_mostsimi(model, wordlist, annoyindex=None,top=10):
             result = model.most_similar(w,topn=top,indexer=annoyindex)
             for e in result:
                 print("%s : %.3f" %(e[0],e[1]))
-        except KeyError, e:
+        except KeyError:
             print("word %s is not in the model!" %w)
     print("--------------time cost %.3f secs/word " %((time.time()-t)/float(len(wordlist))))
 
@@ -168,7 +168,7 @@ def test_model(w2vmodel,testwl=testwl,topn=10,evalut=False):
     model = Word2Vec.load(w2vmodel) if type(w2vmodel) is str else w2vmodel
     print_mostsimi(model, testwl, top=topn)
     if evalut:
-        ina = raw_input("model score 1-9 : ")
+        ina = input("model score 1-9 : ")
         f = open(datapath + r'/model/gensim/modelscore.txt', 'a')
         f.write("size=%d window=%d mincount=%d iter=%d sg=%d hs=%d ns=%d score=%s\n"
                 %(model.vector_size, model.window, model.min_count, model.iter, model.sg, model.hs, model.negative, ina))
@@ -197,7 +197,7 @@ def run_train(indatapat,mnameprefix='test'):
 
 if __name__ == '__main__':
     indatapath=path.path_dataseg+'/kws_raw'
-    print indatapath
+    print(indatapath)
     run_train(indatapath,mnameprefix="kws1811_raw")
 
 

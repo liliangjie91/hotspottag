@@ -18,7 +18,7 @@ classifier.fit(samples, target)  # 训练数据来学习，不需要返回值
 
 x = classifier.predict([5, 3, 5, 2.5])  # 测试数据，分类返回标记
 
-print x
+print(x)
 
 # 其实导入的是sklearn.linear_model的一个类：LogisticRegression， 它里面有许多方法
 # 常用的方法是fit（训练分类模型）、predict（预测测试样本的标记）

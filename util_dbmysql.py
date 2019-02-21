@@ -34,14 +34,14 @@ class mysql(object):
                                          passwd=self.passwd,
                                          db=self.dbname,
                                          charset=self.charset)
-        except MySQLdb.Error, e:
-            print e
+        except MySQLdb.Error as e:
+            print(e)
 
     def query(self, sql):
         try:
             result = self._cursor.execute(sql)
-        except MySQLdb.Error, e:
-            print e
+        except MySQLdb.Error as e:
+            print(e)
             result = False
         return result
 
@@ -69,8 +69,8 @@ class mysql(object):
         try:
             self._cursor.executemany(sql,values)
             self._conn.commit()
-        except MySQLdb.Error, e:
-            print e
+        except MySQLdb.Error as e:
+            print(e)
         return self.affected_num()
 
     def insertmany_bylist(self, table, fields, values):
@@ -87,8 +87,8 @@ class mysql(object):
         try:
             self._cursor.executemany(sql,value)
             self._conn.commit()
-        except MySQLdb.Error, e:
-            print e
+        except MySQLdb.Error as e:
+            print(e)
 
         return self.affected_num()
 
@@ -104,7 +104,7 @@ class mysql(object):
             try:
                 sql = "insert into %s (%s) VALUES (%s)" % (table, field,vv)
                 self._cursor.execute(sql.encode('utf8'))
-            except MySQLdb.Error, e:
+            except MySQLdb.Error as e:
                 badfn=v[0]
         self._conn.commit()
         return self.affected_num()
@@ -124,7 +124,7 @@ class mysql(object):
 
     def update(self, table, tdict, condition=''):
         if not condition:
-            print "must have id"
+            print("must have id")
             exit()
         else:
             condition = 'where ' + condition
