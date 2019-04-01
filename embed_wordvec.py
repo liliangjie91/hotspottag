@@ -9,7 +9,7 @@ import logging
 import sys
 import time
 import util_path as path
-import util_common as util
+import util_common as uc
 from gensim.models import Word2Vec,KeyedVectors,Doc2Vec
 from gensim.similarities.index import AnnoyIndexer
 
@@ -28,10 +28,25 @@ class MySentences(object):
     dirname:分好词的文件路径，可以是单个文件路径也可以是文件夹地址，文件以txt结尾
     start:从一行的第几个元素开始算词。因为有的文件每行第一个元素是用户id，则start=1用于略过id，
     '''
-    def __init__(self, dirname, start=0, subfix='.txt'):
+    def __init__(self, dirname, start=0, subfix='.txt',bigramword=False,trainfilename=False):
+        '''
+        初始化操作
+        :param dirname:词向量训练原始数据文件夹，内部文件是分词后的数据 
+        :type dirname: str
+        :param start: 从每一行的第几个词开始训练？
+        :type start: int
+        :param subfix: 匹配dirname中的文件
+        :type subfix: str
+        :param bigramword: 是否生成并训练二元词
+        :type bigramword: bool
+        :param trainfilename: 是否把文件名也加入训练
+        :type trainfilename: bool
+        '''
         self.dirname = dirname
         self.start=start
         self.subfix=subfix
+        self.bigram=bigramword
+        self.trainfname=trainfilename
 
     def __iter__(self):
         if os.path.isfile(self.dirname):
@@ -42,17 +57,25 @@ class MySentences(object):
             fns = os.listdir(self.dirname)
         for fname in fns:
             if self.subfix in fname:
+                # print('-------------'+fname)
+                filename=os.path.splitext(fname)[0] if self.trainfname else None
                 with codecs.open(os.path.join(folder, fname), 'rU', 'utf8', errors='ignore') as f:
                     for line in f:
                         l = line.strip().split()
                         if self.start:
-                            if len(l) > self.start + 1:  # word must more than 1
-                                yield l[self.start:]
+                            if len(l) > self.start + 1:  # words must more than 1
+                                yield uc.extend2bigram(l[self.start:],filename) if self.bigram else l[self.start:]
                         else:
                             if len(l) > 1:
-                                yield l
+                                yield uc.extend2bigram(l,filename) if self.bigram else l
 
-def train_gensim(modelname,indatapath,size=200,window=5,minc=2,iter=5,sg=0,hs=0,neg=5,annoy=False):
+def train_gensim(modelname, indatapath, size=200, window=5, minc=2, iterr=5, sg=0, hs=0, neg=5, annoy=False):
+    #初始化模型参数
+    ms = MySentences(indatapath, start=1, bigramword=False, trainfilename=False)
+    model = Word2Vec(size=size, iter=iterr, window=window, min_count=minc,
+                     sg=sg, hs=hs, negative=neg, workers=20)  # workers=multiprocessing.cpu_count()
+
+    #设置结果路径
     modelfolder= path.path_dataroot + r'/model/%s' % modelname
     if not os.path.exists(modelfolder):
         os.mkdir(modelfolder)
@@ -62,11 +85,11 @@ def train_gensim(modelname,indatapath,size=200,window=5,minc=2,iter=5,sg=0,hs=0,
     if os.path.exists(modelpath):
         logger.info("model %s has already exists!!!")
         return
+    #训练
     word2vec_start_time = time.time()
-    model = Word2Vec(MySentences(indatapath,start=0,subfix=""), size=size, iter=iter, window=window, min_count=minc,
-                     sg=sg,hs=hs,negative=neg,workers=20)  # workers=multiprocessing.cpu_count()
-    print("开始训练gensim模型时间 : %s" % time.asctime(time.localtime(word2vec_start_time)))
-    print("gensim训练完毕 %.2f secs" % (time.time() - word2vec_start_time))
+    model.build_vocab(ms,progress_per=500000)
+    model.train(ms, total_examples=model.corpus_count, epochs=iterr)
+    logger.info("trainning gensim cost : %s" %(time.time() - word2vec_start_time))
     model.save(modelpath)  #保存整个模型以及训练过程的数据（其实会生成3个文件model,syn0,syn1 or syn1neg）
     model.init_sims(replace=True)
     model.wv.save_word2vec_format(vecname, binary=False)
@@ -74,7 +97,7 @@ def train_gensim(modelname,indatapath,size=200,window=5,minc=2,iter=5,sg=0,hs=0,
     # print_mostsimi(model, testwl)
     if annoy:
         aindex=load_annoy(annoypath, model)
-        print_mostsimi(model, testwl, aindex)
+        # print_mostsimi(model, testwl, aindex)
 
 def print_relationsimi(model,l,top=10):
     '''
@@ -180,24 +203,31 @@ def run_single_train(argslist, inputpath, mnameprefix='test', justgetname=False)
     opttypehs = 'hs' if hs else ''
     opttypens = 'ns' if neg else ''
     modelname = 'w2v_%s_d%dw%dminc%diter%d_%s%s%s'% (mnameprefix, size, win, minc, iter, modeltype, opttypehs, opttypens)
+    print("inputpath=%s \n modelname=%s" %(inputpath,modelname))
     if not justgetname:
         logger.info("Starting train model : %s" %modelname)
         train_gensim(modelname, indatapath=inputpath, size=size, window=win,
-                     minc=minc, iter=iter, sg=sg, hs=hs, neg=neg)
+                     minc=minc, iterr=iter, sg=sg, hs=hs, neg=neg, annoy=True)
+
     return modelname
 
 def run_train(indatapat,mnameprefix='test'):
     #        dim,win,min,itr,sg,hs,neg
     # argls = [[300, 5, 2, 5, 0, 0, 5],
     #          [300, 8, 2, 5, 1, 0, 5]]
-    argls = [[300, 8, 2, 5, 1, 0, 5]]
+    argls = [[200, 8, 8, 5, 0, 0, 5]] #用于外网词推荐接口：[200, 8, 9, 10, 1, 0, 5]
     for argl in argls:
         modelname = run_single_train(argl, inputpath=indatapat,mnameprefix=mnameprefix ,justgetname=False)
 
 
 if __name__ == '__main__':
-    indatapath=path.path_dataseg+'/kws_raw'
-    print(indatapath)
-    run_train(indatapath,mnameprefix="kws1811_raw")
-
-
+    # indatapath=path.path_dataseg+'/kws_raw'
+    # print(indatapath)
+    # run_train(indatapath,mnameprefix="kws1811_raw")
+    # indatapath=path.path_dataraw+'/fn_kws1811bycode/I/'
+    indatapath = '../rec_files/CJFD16-19hexin_fulltext/segres/'
+    # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！
+    # indatapath='./data/data_raw/fn_kwsraw1811bycode/tmp/'
+    run_train(indatapath, mnameprefix="cjfd1619hexinfullt_nofn")
+    # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！
+    # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！

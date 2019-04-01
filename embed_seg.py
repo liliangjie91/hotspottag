@@ -6,8 +6,6 @@ import util_segment
 import os
 import codecs
 import logging
-import sys
-# import IOTools
 from tc_conversion.langconv import *
 from tc_conversion.full_half_conversion import *
 import time
@@ -54,7 +52,7 @@ def segword4onetext(fulltext, sent_num=1):
     对一段/篇文章做分词，分词结果为列表，每个元素为：每句话的分词结果用空格拼接的字符串
     默认原文一句为分词中的一句即sent_num=1
     (因为分句会按照。；回车等符号断句，
-    但对于有些文章或小说，句子比较碎，即句子普遍都很短，
+    但对于有些文章或小说，句子比较碎，即句子普遍都很短，则可设置sent_num>1
     则可以设置多句为一句用于分词，这样，一行就能包含较丰富的信息)
     :param fulltext: 全文或段落,即若干句话拼接成的一行str
     :type fulltext: str 
@@ -66,8 +64,8 @@ def segword4onetext(fulltext, sent_num=1):
     wordres = []
     t1=time.time()
     # 对整体全文直接做转换效率比每句做一遍高
-    fulltext = str_full2half(fulltext)  # 全角转半角
-    fulltext = Converter('zh-hans').convert(fulltext)  # 繁体转简体
+    # fulltext = str_full2half(fulltext)  # 全角转半角
+    # fulltext = Converter('zh-hans').convert(fulltext)  # 繁体转简体
     sentences = ss.segment(fulltext.lower())
     # logger.info("sentences seg done! cost %d secs , get %d sentences" % ((time.time() - t1), len(sentences)))
     if sentences:
@@ -169,7 +167,7 @@ def seg4file_1line1text(infile, resprefix='',to1line=False, hastitle=False, spli
         filename = os.path.splitext(os.path.split(infile)[1])[0]
         if not os.path.exists(segresfolder):
             os.mkdir(segresfolder)
-        util.list2txt(alllines, os.path.join(segresfolder, filename+resprefix+'.txt'))
+        util.list2txt(alllines, os.path.join(segresfolder, '%s_%s_%s.txt' %(filename,resprefix,mode)))
     else:
         raise Exception("Word Seg Res is None, Please Check Your Input File!!!")
 
@@ -223,7 +221,7 @@ def parallel_running(path,cpucnt=10):
     :rtype: list
     """
     from multiprocessing import Pool
-    infiles = util.getfileinfolder(path, prefix='1811')
+    infiles = util.getfileinfolder(path, prefix='rec_abs')
     logger.info("input folder is %s , get %d files in this folder" %(path,len(infiles)))
     num_cpus = cpucnt   # 直接利用multiprocessing.cpu_count()
     pool = Pool(num_cpus)
@@ -244,15 +242,19 @@ def wrap(inpath):
     seg4file_1line1text(inpath, resprefix='_l1t1',to1line=True,hastitle=True)
     # return amount_and_dict
 
+
+
 if __name__ == '__main__':
-    basepath=r'./data'
+    # basepath=r'./data'
     # rawdatapath=basepath+r'/data_raw/jinyongquanji'
-    segdatapath=basepath+r'/data_seg/title'
+    # segdatapath=basepath+r'/data_seg/title'
     # seg4file(rawdatapath,segdatapath)
     # seg4file_book(tlbbpath, segdatapathtmp)
     # seg4file_1line1text(Path.path_datahighq5w+'/fn18_5w_summery.txt',
     #                     Path.path_dataseg + '/sumery_highq5w',
     #                     resprefix='_1l1t',to1line=True,hastitle=True)
-    parallel_running(segdatapath)
-    # seg4file_1line1text(segdatapath,'_seg',to1line=True,hastitle=True)
+    # parallel_running('../rec_files/CJFD16-19hexin_others/selected/abs')
+    # parallel_running('./otherfile/test.txt',cpucnt=1)
+    seg4file_1line1text('./otherfile/test.txt','seg',to1line=False,hastitle=False)
     # single_running(rawdatapath,segdatapath)
+    pass

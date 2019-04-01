@@ -22,7 +22,7 @@ def str_full2half(ustring):
                 inside_code -= 0xfee0
             if inside_code < 0x0020 or inside_code > 0x7e:  # 转完之后不是半角字符返回原来的字符
                 switch_string += uchar
-            switch_string += unichr(inside_code)
+            switch_string += chr(inside_code)
         except ValueError:
             pass
     return switch_string

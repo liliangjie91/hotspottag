@@ -3,7 +3,8 @@
 # Created by lljzhiwang on 2018/12/7 
 from gensim.models.doc2vec import Doc2Vec
 from gensim.models import keyedvectors
-import util_common as util
+import data_preprocess as dp
+import util_common as uc
 import util_path as path
 import numpy as np
 import os,time,json
@@ -28,7 +29,7 @@ def get_samplevec_gensimmodel(vecpath1, vecpath2, samplefile):
     v_user = load_vec(vecpath1)
     print('loading vecfile : %s' % vecpath2)
     v_file = load_vec(vecpath2)
-    sample00=util.load2list(samplefile)
+    sample00=uc.load2list(samplefile)
     cnt=0
     for l in sample00:
         if cnt%10000==0:
@@ -57,29 +58,48 @@ def load_vec(vecfilepath,norm=True):
         vect.init_sims() #做向量归一化即生成vectors_norm
     return vect
 
-def get_kwsfromfn_bycode(dic_code_fns,fn_kws,respath=None,topkw=0):
+def get_kwsfromfn_bycode(dic_code_fns,fn_kws,stopwords=None,respath=None,topkw=0,codesubfix=''):
     '''
     根据子栏目代吗-fn文件和fn-关键词文件，获取子栏目代码-关键词文件
     :param dic_code_fns: 
-    :type dic_code_fns:dict 
+    :type dic_code_fns: 
     :param fn_kws: 
-    :type fn_kws: dict
+    :type fn_kws: 
+    :param stopwords: 
+    :type stopwords: set
+    :param respath: 
+    :type respath: 
+    :param topkw: 
+    :type topkw: 
     :return: 
     :rtype: 
     '''
     res={}
+    logger.info("getting code-[kws] dict.")
+    if stopwords:
+        print('using stopwords.')
     for k in dic_code_fns.keys():
-        tmpkws=[]
-        tmpfns=dic_code_fns[k]
-        for fn in tmpfns:
-            if fn_kws.has_key(fn):
-                if topkw:
-                    tmpkws.extend(fn_kws[fn][:topkw])
-                else:
-                    tmpkws.extend(fn_kws[fn])
-        res[k]=tmpkws
+        if codesubfix in k[:4]:
+            tmpkws=[]
+            tmpfns=dic_code_fns[k]
+            logger.info("for code : %s" %k)
+            for fn in tmpfns:
+                if fn in fn_kws:
+                    tmpl = []
+                    if stopwords:
+                       for w in fn_kws[fn]:
+                           if not w in stopwords:
+                               tmpl.append(w)
+                    else:
+                        tmpl=fn_kws[fn]
+
+                    if topkw:
+                        tmpkws.extend(tmpl[:topkw])
+                    else:
+                        tmpkws.extend(tmpl)
+            res[k]=tmpkws
     if respath:
-        util.savejson(respath,res)
+        uc.savejson(respath, res)
     return res
 
 def get_w_v_all(vecfilepath):
@@ -90,7 +110,7 @@ def get_w_v_all(vecfilepath):
     # words 和 vecs 顺序是一样的，即index相同
     return words,vecs
 
-def get_w_v_bycode(vecfilepath,dic_code_kws,respath):
+def get_w_v_bycode(vecfilepath,dic_code_kws,respath,ifstopword=False,tfidffolder=None,thre=0.1):
     '''
     根据词向量和专题子栏目代码-关键词字典获取每个子栏目代码下的关键词及其向量
     :param vecfilepath: 词向量模型对应的词向量
@@ -104,6 +124,7 @@ def get_w_v_bycode(vecfilepath,dic_code_kws,respath):
     vect.init_sims()
     if not os.path.exists(respath):
         os.mkdir(respath)
+
     for k in dic_code_kws.keys():
         print("for code %s" %k)
         if '_' in k:
@@ -122,14 +143,21 @@ def get_w_v_bycode(vecfilepath,dic_code_kws,respath):
             words=[]
             vecs=[]
             curkws_uniq=list(set(curkws))   #去重
+            stopwords=set()
+            if ifstopword:
+                #引入各个code下的tfidf，并计算出一定比例下的停用词
+                tfidfdpath=tfidffolder+'/%s.json' %k
+                tfidfd=uc.loadjson(tfidfdpath) if os.path.exists(tfidfdpath) else {}
+                stopwords = dp.genTFIDF_stopwords_step2(tfidfd,thre)
+                logger.info("get %d stopwords at thre=%f" %(len(stopwords),thre))
             for w in curkws_uniq:
-                if w in vect:
+                if w in vect and w not in stopwords:
                     words.append(w)
                     vec_norm=vect.vectors_norm[vect.vocab[w].index]
                     vecs.append(vec_norm)
             if words:
                 print("saving data for code %s get res %d" %(k,len(words)))
-                util.list2txt(words,resfileword)
+                uc.list2txt(words, resfileword)
                 np.savetxt(resfilevec,np.array(vecs))
     print("get words & vecs by code done!")
 
@@ -138,7 +166,7 @@ def load_allcresjson(basefolder,aim_pattern):
     # basefolder = path.path_dataroot + '/cluster/w2vkw1811_sgns_code/data_wv'
     # aim_pattern = r'data_wv.*dic_word2center_.*json'
     logger.info('loading cluster res json file in : %s' %basefolder)
-    cresw2cdicfile = util.getfileinfolder(basefolder, prefix=aim_pattern, recurse=True, maxdepth=2)
+    cresw2cdicfile = uc.getfileinfolder(basefolder, prefix=aim_pattern, recurse=True, maxdepth=2)
     allcresdic={}
     cnt=0
     for fj in cresw2cdicfile:
@@ -154,9 +182,9 @@ def load_allcresjson(basefolder,aim_pattern):
 
 def get_goodfn_byfn(rawfns,respath):
     #选择优质杂志的文献
-    goodj = util.load2dic(path.good_journal)
+    goodj = uc.load2dic(path.good_journal)
     if isinstance(rawfns,str):
-        fns=util.load2list(rawfns)
+        fns=uc.load2list(rawfns)
     else:
         fns=rawfns
     res=[]
@@ -167,12 +195,12 @@ def get_goodfn_byfn(rawfns,respath):
             print(cnt)
         if fn[:4] in goodj or fn[-3:] == '.NH':
             res.append(fn)
-    util.list2txt(res,respath)
+    uc.list2txt(res, respath)
 
 def get_highqsample(goodfns,input1,respath):
-    gfns=util.load2list(goodfns)
+    gfns=uc.load2list(goodfns)
     resdic={}
-    indic=util.load2dic(input1,interactor=' ')
+    indic=uc.load2dic(input1, interactor=' ')
     cnt=-1
     for fn in gfns:
         cnt+=1
@@ -181,7 +209,10 @@ def get_highqsample(goodfns,input1,respath):
         if fn in indic:
             resdic[fn]=indic[fn]
     if resdic:
-        util.json2txt(resdic,respath,interactor=' ')
+        uc.json2txt(resdic, respath, interactor=' ')
+
+
+
 
 
 if __name__ == '__main__':
@@ -189,4 +220,6 @@ if __name__ == '__main__':
     #                           path.path_model + '/d2v_highq5w_l1t1_d300w5minc3iter30_dmns/d2v_highq5w_l1t1_d300w5minc3iter30_dmns.dv',
     #                           path.path_datahighq5w + '/sample_highq5w_neg.txt')
     # get_goodfn_byfn(path.path_dataraw+'/fns1811',path.path_dataraw+'/fns1811ingoodj')
-    get_highqsample(path.path_dataraw+'/fns1811ingoodj',path.path_dataraw+'/fn_code_1811_seg',path.path_dataraw+'/highqpaper/fn_code_1811_seg')
+    # get_highqsample(path.path_dataraw+'/fns1811ingoodj',path.path_dataraw+'/fn_code_1811_seg',path.path_dataraw+'/highqpaper/fn_code_1811_seg')
+    # caculate_idf(path.path_dataraw+'/fn_kwsraw1811bycode/I/I135_52.txt',path.path_dataraw+'/fn_kwsraw1811bycode/test')
+    pass

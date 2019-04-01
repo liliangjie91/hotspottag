@@ -182,7 +182,7 @@ class WordSegmentation(object):
     分词
     '''
 
-    stop_words_file = {}.fromkeys([line.decode('utf8').strip()
+    stop_words_file = {}.fromkeys([line.strip()
                                    for line in open(util_path.stop_words_path)])  # 加载停用词典
     jieba.set_dictionary(util_path.jieba_dict_path)  # 加载专业词jieba词典
     jieba.initialize()
@@ -237,7 +237,7 @@ class WordSegmentation(object):
                 sentence_words.append(seg)
             else:
                 res = SentenceSegmentation.has_number_character(seg)
-                if not stop_words_file.has_key(seg) and not res:  # 正文需要去停用词（将原来puct符号集移至停用词字典，摒除数字单个成字的可能）
+                if not seg in stop_words_file and not res:  # 正文需要去停用词（将原来puct符号集移至停用词字典，摒除数字单个成字的可能）
                     sentence_words.append(seg)
         return sentence_words
 
@@ -271,16 +271,16 @@ class Segmentation(object):
 
 # 测试
 if __name__ == '__main__':
-    import uniout
+    # import uniout
 
     ws = WordSegmentation()
-    # ee = u'445我爱祖国天安门DNA1234'
-    # ss = u'典型周期谱密度ＤＮＡ123>34，T－DNA，HBV＿DNA,DNA分型方法,ＴｈｅｍａｘｉｍｕｍｐｒｅｃｉｐｉｔａｔｉｏｎａｎｄｗｉｎｄｓｐｅｅｄｏｆＳｏｕｔｈ-ＣｈｉｎａａｎｄＥａｓｔ-Ｃｈｉｎａｃｏａｓｔａｌｌａｎｄｆａｌｌｔｙｐｈｏｏｎ，关于工業企業电力负荷的确定問題，2016年12月20日，磷酸二氢钾１５０克,pm2.5。'
+    ee = u'445我爱祖国天安门DNA1234'
+    ss = u'典型周期谱密度ＤＮＡ123>34，T－DNA，HBV＿DNA,DNA分型方法,ＴｈｅｍａｘｉｍｕｍｐｒｅｃｉｐｉｔａｔｉｏｎａｎｄｗｉｎｄｓｐｅｅｄｏｆＳｏｕｔｈ-ＣｈｉｎａａｎｄＥａｓｔ-Ｃｈｉｎａｃｏａｓｔａｌｌａｎｄｆａｌｌｔｙｐｈｏｏｎ，关于工業企業电力负荷的确定問題，2016年12月20日，磷酸二氢钾１５０克,pm2.5。'
     # print ss
     # ss = IOTools.str_full2half(ss)
     # ss = IOTools.Converter('zh-hans').convert(ss)
     # print len(ss.lower())
-    # my_list = ws.segment(ss.lower())
-    # print my_list
-    ws.addotherdics()
+    my_list = ws.segment(ss.lower())
+    print(my_list)
+    # ws.addotherdics()
 

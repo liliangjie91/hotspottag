@@ -72,7 +72,7 @@ def get_FileSize(filePath):
     :param filePath: 
     :return: 
     '''
-    filePath = unicode(filePath,'utf8')
+    filePath = filePath
     fsize = os.path.getsize(filePath)
     fsize = fsize/float(1024*1024)
     return round(fsize,2)
@@ -90,26 +90,32 @@ def list2txt(l,path):
         os.remove(path)
     with open(path,'w') as f:
         for i in l:
-            if isinstance(i,(int,float,long)):
+            if isinstance(i,(int,float)):
                 i = str(i)
-            f.write(i.strip().encode('utf-8', 'ignore')+'\n')
+            f.write(i.strip()+"\n")
 
-def load2list(path,to1column=False,separator=None,get1column=-1,start=0):
+def load2list(path, to1column=False, row2list=False, separator=None, get1column=-1, start=0):
     '''
     读取文本返回成list，
-    默认一行一元素---进输入path即可
-    也可按分隔符分割后每个词为一个元素---to1column=True
-    也可按分隔符分割后每个词为一个元素(可选从哪一列开始，默认全部，即从0开始)---to1column=True，start=1
-    也可单独获取分割后的某列词为一元素---get1column=需要的那一列从0开始
     
-    :param path: 
+    结果为1维列表：
+        默认文本中一行数据变为结果list中的一个元素
+        也可按分隔符分割后，每个词为一个元素(可选从第几个元素开始，默认全部，即从0开始)---to1column=True，start=1
+        也可按分隔符分割后，只选取每行的某一列词为一元素---get1column=需要的那一列从0开始
+    结果为2维列表：
+        也可按分隔符分割后，每一行词组成list，变为结果文件的一个元素。 row2list=True
+    :param path: 源文件路径
     :type path: str
-    :param to1column: 
-    :type to1column:bool 
-    :param separator: 
-    :type separator: bool
-    :param get1column: 
+    :param to1column:是否把分割后的每一个词作为一个元素 
+    :type to1column: bool
+    :param row2list: 是否把分割后的行变为list再作为结果的一个元素
+    :type row2list: bool
+    :param separator: 分隔符
+    :type separator: 
+    :param get1column: 只获取某一列
     :type get1column: 
+    :param start: 起始位置
+    :type start: 
     :return: 
     :rtype: list
     '''
@@ -122,6 +128,8 @@ def load2list(path,to1column=False,separator=None,get1column=-1,start=0):
                 if l:
                     if to1column :
                         res.extend(l.split(separator)[start:])
+                    elif row2list:
+                        res.append(l.split(separator)[start:])
                     elif get1column>=0:
                         res.append(l.split(separator)[get1column])
                     else:
@@ -214,7 +222,7 @@ def load2dic_02(path,separator=None):
                     for k in keys:
                         if k:
                             k = fieldcode_precess(k)
-                            if res.has_key(k):
+                            if k in res:
                                 tmpl=res[k]
                                 tmpl.append(value)
                                 res[k]=tmpl
@@ -245,7 +253,7 @@ def load2dic(path, separator=None,value2list=False,interactor=';'):
                         res[ll[0]]=ll[1:]
                     else:
                         res[ll[0]]=interactor.join(ll[1:])
-    print("all lines : %d" %len(res))
+    logger.info("all lines : %d" %len(res))
     return res
 
 def load2dic_wc(path,separator=None):
@@ -267,5 +275,31 @@ def load2dic_wc(path,separator=None):
     print("all lines : %d" % len(res))
     return res
 
+def extend2bigram(l, centerword=None, start=0, justbigram=False, addstartelem=False):
+    '''
+    把一元词列表，转变成一元-二元词列表
+    例1,默认情况：in:[w1,w2,w3,w4] out:[w1,w2,w3,w4,w1w2,w1w3,w1w4,w2w3,w2w4,w3w4]
+    例2,justbigram=True：in:[w1,w2,w3,w4] out:[w1w2,w1w3,w1w4,w2w3,w2w4,w3w4]
+    例3,start=1：in:[file_id,w1,w2,w3,w4] out:[w1,w2,w3,w4,w1w2,w1w3,w1w4,w2w3,w2w4,w3w4] 
+    例4,start=1，addstartelem=True：in:[file_id,w1,w2,w3,w4] out:[file_id,w1,w2,w3,w4,w1w2,w1w3,w1w4,w2w3,w2w4,w3w4] 
+    :param l: 
+    :type l: list
+    :return: 
+    :rtype: list
+    '''
+    if len(l)<2+start:return l
+    bigramw=[]
+    for i in range(start,len(l)):
+        for j in range(i+1,len(l)):
+            bigramw.append(l[i]+l[j])
+    if justbigram:
+        return [l[0]] + bigramw if addstartelem else bigramw
+    else:
+        return l+[centerword]+bigramw if centerword else l+bigramw
+
 if __name__ == '__main__':
-    json2txt('./data/cluster/w2vkw1811_sgns_code/data_wv/A001/dic_center2words_A001_21_00107.json', 'tmp.txt')
+    # json2txt('./data/cluster/w2vkw1811_sgns_code/data_wv/A001/dic_center2words_A001_21_00107.json', 'tmp.txt')
+    # json2txt('./data/cluster/bigram_I/cres03/c2w/dic_center2words_I138_1_00717.json',
+    #          './data/cluster/bigram_I/cres03/c2w/txt_dic_center2words_I138_1_00717.txt')
+    # print(extend2bigram(['id','w1', 'w2', 'w3','w4'],'I138',start=1))
+    pass

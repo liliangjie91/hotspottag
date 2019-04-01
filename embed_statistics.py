@@ -21,7 +21,6 @@ def getword4file(filepath,start=0):
             res.extend(line.split()[start:])
     return res
 
-
 def getword4folder(path, ifcount=0):
     '''
     结合上一函数，统计文件夹内所有符合要求的文件
@@ -84,7 +83,6 @@ def getlinelength4file(filepath,start=0,ifcount=0):
             print('%02d %s  %d' % (k, '*' * int(v / 500000), v))
     return res
 
-
 def getfiledtop(cnter,filedfile,top=50):
     '''
     按filedfile里词的词频排序
@@ -106,8 +104,6 @@ def getfiledtop(cnter,filedfile,top=50):
     util.list2txt(topnwords,respath)
     return topnwords
 
-
-
 def main():
     basepath=r'./data'
     segpath=basepath+r'/data_seg'
@@ -115,11 +111,8 @@ def main():
     filedfiles=util.getfileinfolder(filedpath,'.txt')
     # wordl=getword4folder(segpath)
     wordl = getlinelength4file(segpath+r'/log_b_18.txt',start=1,ifcount=1)
-
-
     # for f in filedfiles:
         # getfiledtop(c,f,200)
-
 
 if __name__ == '__main__':
     main()
