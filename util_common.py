@@ -13,6 +13,9 @@ logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 bianma='utf8'
 
+'''
+常用函数
+'''
 
 def get_code_field(code,dic_codefield):
     '''

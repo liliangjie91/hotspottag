@@ -12,7 +12,10 @@ logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 logger.info("running %s" % ' '.join(sys.argv))
 
-#主要用于数据的预处理。针对用户的浏览下载日志原始数据，做分组，归纳，去重，统计等预处理
+#主要用于数据的预处理。
+#1，针对用户的浏览(b),下载(d)日志原始数据结合从数据库提取的某些字段，做分组，归纳，去重，统计，提取字段等预处理
+#2，计算关键词数据的tfidf
+#3，根据tf，idf等信息计算停用词表。为后续词聚类做词过滤工作。
 
 datapath=path.path_dataroot
 goodpath=path.path_datagood

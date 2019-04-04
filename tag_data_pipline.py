@@ -26,6 +26,10 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 # logger.addHandler(ch)
 
+'''
+用户标签系统的全部流程
+'''
+
 def run01():
     '''
     1,生成初级停用词 自选+一元词+二元词

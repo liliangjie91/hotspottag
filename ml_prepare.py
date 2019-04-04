@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Created by lljzhiwang on 2018/12/7 
 from gensim.models.doc2vec import Doc2Vec
-from gensim.models import keyedvectors
+from gensim.models import KeyedVectors
 import data_preprocess as dp
 import util_common as uc
 import util_path as path
@@ -20,15 +20,19 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 # logger.addHandler(ch)
 
+'''
+本段主要涉及到向量数据的准备工作，主要指词向量模型训练完成之后，根据样本获取特定的向量以送入模型
+'''
 
-def get_samplevec_gensimmodel(vecpath1, vecpath2, samplefile):
+def get_samplevec_gensimmodel(vec_u, vec_fn, samplefile):
+    #根据样本文件(uid+fid)获取用户向量vec_u和物品向量vec_fn。并储存
     data=[]
     label=[]
-    print('loading vecfile : %s' % vecpath1)
+    print('loading vecfile : %s' % vec_u)
     # muser=Doc2Vec.load(usermodel)
-    v_user = load_vec(vecpath1)
-    print('loading vecfile : %s' % vecpath2)
-    v_file = load_vec(vecpath2)
+    v_user = load_vec(vec_u)
+    print('loading vecfile : %s' % vec_fn)
+    v_file = load_vec(vec_fn)
     sample00=uc.load2list(samplefile)
     cnt=0
     for l in sample00:
@@ -52,27 +56,16 @@ def get_samplevec_gensimmodel(vecpath1, vecpath2, samplefile):
     np.savetxt('./test.txt',np.array(data))
     # util.list2txt(label,'./lable.txt')
 
-def load_vec(vecfilepath,norm=True):
-    vect=keyedvectors.Word2VecKeyedVectors.load_word2vec_format(vecfilepath)
+def load_vec(vecfilepath,norm=True,replace=True):
+    #加载词向量文件（非词向量模型）做标准化，且替换原非标准化的vector
+    vect=KeyedVectors.load_word2vec_format(vecfilepath)
     if norm:
-        vect.init_sims() #做向量归一化即生成vectors_norm
+        vect.init_sims(replace=replace) #做向量归一化即生成vectors_norm
     return vect
 
-def get_kwsfromfn_bycode(dic_code_fns,fn_kws,stopwords=None,respath=None,topkw=0,codesubfix=''):
+def get_code_kws_dict(dic_code_fns, fn_kws, stopwords=None, respath=None, topkw=0, codesubfix=''):
     '''
-    根据子栏目代吗-fn文件和fn-关键词文件，获取子栏目代码-关键词文件
-    :param dic_code_fns: 
-    :type dic_code_fns: 
-    :param fn_kws: 
-    :type fn_kws: 
-    :param stopwords: 
-    :type stopwords: set
-    :param respath: 
-    :type respath: 
-    :param topkw: 
-    :type topkw: 
-    :return: 
-    :rtype: 
+    根据子栏目代吗-fn文件和fn-关键词文件，获取子栏目代码-关键词文件 
     '''
     res={}
     logger.info("getting code-[kws] dict.")
@@ -104,7 +97,6 @@ def get_kwsfromfn_bycode(dic_code_fns,fn_kws,stopwords=None,respath=None,topkw=0
 
 def get_w_v_all(vecfilepath):
     vect=load_vec(vecfilepath)
-    vect.init_sims()
     words=vect.index2word
     vecs=vect.vectors_norm
     # words 和 vecs 顺序是一样的，即index相同
@@ -121,7 +113,6 @@ def get_w_v_bycode(vecfilepath,dic_code_kws,respath,ifstopword=False,tfidffolder
     :rtype: 
     '''
     vect = load_vec(vecfilepath)
-    vect.init_sims()
     if not os.path.exists(respath):
         os.mkdir(respath)
 
@@ -163,6 +154,7 @@ def get_w_v_bycode(vecfilepath,dic_code_kws,respath,ifstopword=False,tfidffolder
 
 def load_allcresjson(basefolder,aim_pattern):
     #聚类bycode模式完成后，分别获取这些聚类结果，然后用户predict
+    #结果文件是一个二级字典。第一级key为code，value为一个字典，第二级字典key为该code下的词，value为中心词
     # basefolder = path.path_dataroot + '/cluster/w2vkw1811_sgns_code/data_wv'
     # aim_pattern = r'data_wv.*dic_word2center_.*json'
     logger.info('loading cluster res json file in : %s' %basefolder)

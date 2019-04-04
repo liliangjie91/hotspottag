@@ -6,6 +6,10 @@ from collections import Counter
 import os,codecs,json
 import util_common as util
 
+'''
+对分词后的文件做简单统计，不常用
+'''
+
 
 def getword4file(filepath,start=0):
     '''

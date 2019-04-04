@@ -9,18 +9,31 @@ import logging
 from tc_conversion.langconv import *
 from tc_conversion.full_half_conversion import *
 import time
-import util_path
 import util_common as util
 
-bianma='utf8'
-basepath=r'./data'
-# bianma='gb18030'
-ss = util_segment.SentenceSegmentation()
-ws = util_segment.WordSegmentation()
+ENCODE= 'utf8' #'gb18030'
+BASEPATH= r'./data'
+
+SENTSEG = util_segment.SentenceSegmentation()
+WORDSEG = util_segment.WordSegmentation()
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 logger.info("running %s" % ' '.join(sys.argv))
+
+
+'''
+本文件主要用于分词-为接下来的词嵌入训练做准备
+为应对不同输入形式，主要分为：
+1，对单行做分词 segword4*
+2，对文件做分词 seg4file_*
+常用seg4file_1line1text 针对大型文本，一行即为一篇文章的输入
+
+!!!! 注意 !!!!
+1,编码格式 默认utf-8
+2,半全角转换和繁简转换会很大减慢速度 注意设置segword4oneline的参数convert
+'''
 
 def segword4oneline(line, minwc=3, minwlen=0, sseg=False, convert=False):
     '''
@@ -40,7 +53,7 @@ def segword4oneline(line, minwc=3, minwlen=0, sseg=False, convert=False):
     if convert:
         line = str_full2half(line)  # 全角转半角
         line = Converter('zh-hans').convert(line)  # 繁体转简体
-    wordseg2 = ws.segment(line)
+    wordseg2 = WORDSEG.segment(line)
     wordseg = [i for i in wordseg2 if len(i) > minwlen]
     if len(wordseg) > minwc:
         return wordseg
@@ -62,11 +75,10 @@ def segword4onetext(fulltext, sent_num=1):
     :rtype: list
     '''
     wordres = []
-    t1=time.time()
     # 对整体全文直接做转换效率比每句做一遍高
     # fulltext = str_full2half(fulltext)  # 全角转半角
     # fulltext = Converter('zh-hans').convert(fulltext)  # 繁体转简体
-    sentences = ss.segment(fulltext.lower())
+    sentences = SENTSEG.segment(fulltext.lower())
     # logger.info("sentences seg done! cost %d secs , get %d sentences" % ((time.time() - t1), len(sentences)))
     if sentences:
         cnt = 0
@@ -88,7 +100,7 @@ def segword4onetext(fulltext, sent_num=1):
 def seg4file_book(infile, respath):
     '''
     对文章或小说做分词，一行多句，一个file是一本小说或全文
-    本方法原旨在处理一部系列小说，其小说格式较为奇葩
+    本方法原旨在处理一部系列小说，其小说格式较为奇葩,太多断句
     :param infile: 
     :param respath: 
     :return: 
@@ -96,7 +108,7 @@ def seg4file_book(infile, respath):
     alllines=[]
     fsize = util.get_FileSize(infile)
     logger.info("doing %s  and its %.2fMB" %(infile,float(fsize)))
-    with codecs.open(infile, 'rU', encoding=bianma, errors='replace') as f:
+    with codecs.open(infile, 'rU', encoding=ENCODE, errors='replace') as f:
         for line in f:
             l = line.strip()
             if l:
@@ -126,7 +138,7 @@ def seg4file_1line1text(infile, resprefix='',to1line=False, hastitle=False, spli
     3:输入文本第一列标题，后面是text，text分成一行(类似1),输出类似 title [text分词](to1line=True, hastitle=True)
     4:输入文本第一列标题，后面是text，text分成多行(类似2),而输出每行都要加上标题 (to1line=False, hastitle=True)
     结果文件存放在输入文件目录下segres文件夹内
-    分词速度：单核8.5M/min(XEON) 
+    分词速度：单核10M/min(XEON) 
     :param infile: 
     :return: 
     '''
@@ -138,7 +150,7 @@ def seg4file_1line1text(infile, resprefix='',to1line=False, hastitle=False, spli
     logger.info("doing %s  and its %.2fMB and split mode is %s" %(infile,float(fsize),mode))
     t2 = time.time()
     cnt=-1
-    with codecs.open(infile, 'rU', encoding=bianma, errors='replace') as f:
+    with codecs.open(infile, 'rU', encoding=ENCODE, errors='replace') as f:
         for line in f:
             cnt+=1
             if cnt%50000==0:
@@ -151,7 +163,7 @@ def seg4file_1line1text(infile, resprefix='',to1line=False, hastitle=False, spli
                 title = l.split(spliter)[0]
                 l = ''.join(l.split(spliter)[1:])
             if to1line:
-                wseg=segword4oneline(l,convert=True)
+                wseg=segword4oneline(l)
                 if wseg:
                     alllines.append(' '.join([title]+wseg))
             else:
@@ -181,7 +193,7 @@ def seg4file_1line1sent(infile, respath):
     cnt = 0
     fsize = util.get_FileSize(infile)
     logger.info("now doing file : %s and its size is %.2f MB" % (infile, fsize))
-    with codecs.open(infile, 'rU', encoding=bianma, errors='replace') as f:
+    with codecs.open(infile, 'rU', encoding=ENCODE, errors='replace') as f:
         for line in f:
             cnt += 1
             if cnt % 50000 == 0: #差不多1分钟

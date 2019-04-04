@@ -7,6 +7,10 @@ import util_path as path
 import util_common as uc
 CUR_FIELDCODE_DIC = uc.load2dic(r'source/field_dic.txt')
 
+'''
+获取标签之后，写入mysql数据库的一些操作
+'''
+
 def write2mysqlbylist(startfrom=0,count=0):
     db=msql.mysql()
     datapath=path.path_dataraw

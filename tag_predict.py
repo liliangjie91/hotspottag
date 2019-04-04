@@ -4,7 +4,7 @@
 import util_path as path
 import util_common as uc
 import os,time,json,re,codecs
-# import util_dbkbase
+import util_dbkbase
 import ml_prepare as mlpre
 import logging
 
@@ -19,44 +19,52 @@ logger.addHandler(fh)
 # logger.addHandler(ch)
 CUR_FNCODE_DIC=uc.load2dic(path.path_dataraw + '/fn_code_1811_seg')
 # CUR_FNKWS_DIC=uc.load2dic(path.path_dataraw + '/fn_kws_1811')
-CUR_FNKWS_DIC_HIGHQ=uc.load2dic(path.path_dataraw + '/highqpaper/fn_kws_1811')
+# CUR_FNKWS_DIC_HIGHQ=uc.load2dic(path.path_dataraw + '/highqpaper/fn_kws_1811')
+CUR_FNKWSRAW_BIGRAM=uc.load2dic(path.path_dataraw + '/fn_kwsraw1811bycode/tmp/fnKws_I_all.txt')
 # CUR_FNKWSRAW_DIC=uc.load2dic(path.path_dataraw + '/fn_kwsraw_1811')
 CUR_FNKWSRAW_DIC_HIGHQ=uc.load2dic(path.path_dataraw + '/highqpaper/fn_kwsraw_1811')
 CUR_FIELDCODE_DIC=uc.load2dic('./source/field_dic.txt')
 
+'''
+标签预测：
+1，为输入的词预测标签
+2，为输入的文件名预测标签
 
-def predict_tag_byword4code(words, codes, dic_word2center_all, savecodename=True):
+'''
+def predict_tag_byword4code(words, codes, word2center_dic, savecodename=True):
     '''
     预测关键词对应的标签，给一组关键词，输出对应标签 4code:按专题子栏目代码分类过
     :param words: 
     :type words: list
     :param codes: 
     :type codes: list
-    :param dic_word2center_all: 
-    :type dic_word2center_all: dict
+    :param word2center_dic: 
+    :type word2center_dic: dict
     :return: 
     :rtype: 
     '''
     res = []
+    if codes == [] or codes is None:
+        codes = word2center_dic.keys()
     for code in codes:
         code = code.strip()
         codename , a = uc.get_code_field(code,dic_codefield=CUR_FIELDCODE_DIC)
-        if code in dic_word2center_all:
+        if code in word2center_dic:
             for w in words:
-                if w in dic_word2center_all[code]:
+                if w in word2center_dic[code]:
                     if savecodename:
-                        res.append(codename +'_' + dic_word2center_all[code][w])
+                        res.append(codename +'_' + word2center_dic[code][w])
                     else:
-                        res.append(dic_word2center_all[code][w])
+                        res.append(word2center_dic[code][w])
     return list(set(res))
 
-def predict_tag_byfn4code(fns,dic_word2center_all,fnkwsdic,querrytokbase=True,savecodename=True):
+def predict_tag_byfn4code(fns, word2center_dic, fnkwsdic, querrytokbase=True, savecodename=True):
     '''
     预测文献标签，输入文件名列表，以及关键词及中心字典 4code:按专题子栏目代码分类过
     :param fns: 
     :type fns: list
-    :param dic_word2center_all: 
-    :type dic_word2center_all: dict
+    :param word2center_dic: 
+    :type word2center_dic: dict
     :return: 
     :rtype: dict
     '''
@@ -71,13 +79,13 @@ def predict_tag_byfn4code(fns,dic_word2center_all,fnkwsdic,querrytokbase=True,sa
         if fn in CUR_FNCODE_DIC and fn in fnkwsdic:
             words = fnkwsdic[fn].strip(';').split(';')
             codes = CUR_FNCODE_DIC[fn].strip(';').split(';')
-            dic_res[fn] = predict_tag_byword4code(words, codes, dic_word2center_all,savecodename=savecodename)
+            dic_res[fn] = predict_tag_byword4code(words, codes, word2center_dic, savecodename=savecodename)
         else:
             needkbasefn.append(fn)
     if querrytokbase:
         kbasekws, kbasecodes = get_kwords_kbase(needkbasefn)
         for i, fn in enumerate(needkbasefn):
-            dic_res[fn] = predict_tag_byword4code(kbasekws[i], kbasecodes[i], dic_word2center_all,savecodename=savecodename)
+            dic_res[fn] = predict_tag_byword4code(kbasekws[i], kbasecodes[i], word2center_dic, savecodename=savecodename)
     return dic_res
 
 def predict_tag_byword4all(words, dic_word2center):
@@ -131,7 +139,7 @@ def get_kwords_kbase(inputlist):
 
 def tmp_mergeres(tagdic, kwdic, respath='predicttag_02.txt'):
     '''
-
+    把标签结果写入文件
     :param tagdic: 
     :type tagdic:dict 
     :param kwdic: 
@@ -147,7 +155,7 @@ def tmp_mergeres(tagdic, kwdic, respath='predicttag_02.txt'):
             l = '%s\t%s\t%s\n' % (fn, tags, kw)
             ff.write(l)
 
-def run01(basefolder,fnkwsdic,resprefix="test",getsubres=1000):
+def predict_tag_run(basefolder, fnkwsdic, resprefix="test", getsubres=1000):
     '''
     分大类聚类完毕之后，对每个文件名获取其标签。
     :param basefolder: 存放聚类结果的文件夹
@@ -181,12 +189,12 @@ def run01(basefolder,fnkwsdic,resprefix="test",getsubres=1000):
 
 
 if __name__ == '__main__':
-    cres_kws_highq=path.path_datacluster+'/w2vkw1811_sgns_code_highq'
-    run01(cres_kws_highq + '/cres01', CUR_FNKWS_DIC_HIGHQ, resprefix='kws_highq_cres01', getsubres=0)
-    run01(cres_kws_highq + '/cres02', CUR_FNKWS_DIC_HIGHQ, resprefix='kws_highq_cres02', getsubres=0)
-    run01(cres_kws_highq + '/cres03', CUR_FNKWS_DIC_HIGHQ, resprefix='kws_highq_cres03', getsubres=0)
+    cres_kws_highq=path.path_datacluster+'/bigram_I_onetf1_bitf6_1_stoped2/embed_allkwsAbsTitle'
+    # predict_tag_run(cres_kws_highq + '/cres01', CUR_FNKWS_DIC_HIGHQ, resprefix='kws_highq_cres01', getsubres=0)
+    predict_tag_run(cres_kws_highq + '/cres02', CUR_FNKWSRAW_BIGRAM, resprefix='1811_I_bigram', getsubres=0)
+    # predict_tag_run(cres_kws_highq + '/cres03', CUR_FNKWS_DIC_HIGHQ, resprefix='kws_highq_cres03', getsubres=0)
 
-    cres_kwsraw_highq = path.path_datacluster + '/w2vkwraw1811_sgns_code_highq'
-    run01(cres_kwsraw_highq + '/cres01', CUR_FNKWSRAW_DIC_HIGHQ, resprefix='kwsraw_highq_cres01', getsubres=0)
-    run01(cres_kwsraw_highq + '/cres02', CUR_FNKWSRAW_DIC_HIGHQ, resprefix='kwsraw_highq_cres02', getsubres=0)
-    run01(cres_kwsraw_highq + '/cres03', CUR_FNKWSRAW_DIC_HIGHQ, resprefix='kwsraw_highq_cres03', getsubres=0)
+    # cres_kwsraw_highq = path.path_datacluster + '/w2vkwraw1811_sgns_code_highq'
+    # predict_tag_run(cres_kwsraw_highq + '/cres01', CUR_FNKWSRAW_DIC_HIGHQ, resprefix='kwsraw_highq_cres01', getsubres=0)
+    # predict_tag_run(cres_kwsraw_highq + '/cres02', CUR_FNKWSRAW_DIC_HIGHQ, resprefix='kwsraw_highq_cres02', getsubres=0)
+    # predict_tag_run(cres_kwsraw_highq + '/cres03', CUR_FNKWSRAW_DIC_HIGHQ, resprefix='kwsraw_highq_cres03', getsubres=0)

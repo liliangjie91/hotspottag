@@ -13,14 +13,19 @@ import util_common as uc
 from gensim.models import Word2Vec,KeyedVectors,Doc2Vec
 from gensim.similarities.index import AnnoyIndexer
 
-BIANMA= 'utf8'
-datapath= r'./data'
-# bianma='gb18030'
+ENCODE= 'utf8'
+DATAPATH= r'./data'
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 logger.info("running %s" % ' '.join(sys.argv))
 testwl=[u'中国',u'一带一路',u'广东省',u'计算机',u'经济',u'微信']
+
+
+'''
+词向量训练，annoy索引构建
+'''
 
 class MySentences(object):
     '''
@@ -69,12 +74,20 @@ class MySentences(object):
                             if len(l) > 1:
                                 yield uc.extend2bigram(l,filename) if self.bigram else l
 
-def train_gensim(modelname, indatapath, size=200, window=5, minc=2, iterr=5, sg=0, hs=0, neg=5, annoy=False):
+def train_gensim(modelname,
+                 indatapath,startfrom=0, train_bigram=False, train_filename=False,
+                 size=200, window=5,minc=2, iterr=5, sg=0, hs=0, neg=5,
+                 annoy=False):
+    '''
+    第一行参数：模型名
+    第二行参数：MySentences参数
+    第三行参数：词向量模型参数
+    第四行参数：是否计算annoy索引 
+    '''
     #初始化模型参数
-    ms = MySentences(indatapath, start=1, bigramword=False, trainfilename=False)
+    ms = MySentences(indatapath, start=startfrom, bigramword=train_bigram, trainfilename=train_filename)
     model = Word2Vec(size=size, iter=iterr, window=window, min_count=minc,
                      sg=sg, hs=hs, negative=neg, workers=20)  # workers=multiprocessing.cpu_count()
-
     #设置结果路径
     modelfolder= path.path_dataroot + r'/model/%s' % modelname
     if not os.path.exists(modelfolder):
@@ -87,17 +100,56 @@ def train_gensim(modelname, indatapath, size=200, window=5, minc=2, iterr=5, sg=
         return
     #训练
     word2vec_start_time = time.time()
-    model.build_vocab(ms,progress_per=500000)
-    model.train(ms, total_examples=model.corpus_count, epochs=iterr)
+    model.build_vocab(ms,progress_per=500000,dry_run=False) #构建词库，每处理500000行报告一次
+    wordscnt=model.vocabulary.raw_vocab
+    cnts=sorted(wordscnt.keys())
+
+    model.train(ms, total_examples=model.corpus_count, epochs=iterr) #词向量训练
     logger.info("trainning gensim cost : %s" %(time.time() - word2vec_start_time))
     model.save(modelpath)  #保存整个模型以及训练过程的数据（其实会生成3个文件model,syn0,syn1 or syn1neg）
-    model.init_sims(replace=True)
-    model.wv.save_word2vec_format(vecname, binary=False)
-    # KeyedVectors.load_word2vec_format(vecname)
+    model.init_sims(replace=True) #词向量标准化，replace=True 用标准化的词向量替代原始词向量
+    model.wv.save_word2vec_format(vecname, binary=False) #单纯保存词向量
+    # KeyedVectors.load_word2vec_format(vecname) #单纯载入词向量
     # print_mostsimi(model, testwl)
     if annoy:
         aindex=load_annoy(annoypath, model)
         # print_mostsimi(model, testwl, aindex)
+
+def load_annoy(annoypath, model):
+    '''
+    加载annoy索引，如果没有，则创建
+    :param annoypath: 
+    :type annoypath: 
+    :param model: 
+    :type model: Word2Vec
+    :return: 
+    :rtype: AnnoyIndexer
+    '''
+    if not os.path.exists(annoypath):
+        print("开始构建annoy索引:当前时间 : " + time.asctime(time.localtime(time.time())))
+        starttime12 = time.time()
+        aindex = AnnoyIndexer(model, 200)
+        print("构建索引完毕 %.2f secs" % (time.time() - starttime12))
+        # 保存annoy索引
+        print("开始保存annoy索引")
+        starttime13 = time.time()
+        aindex.save(annoypath)
+        print("保存索引完毕 %.2f secs" % (time.time() - starttime13))
+    else:
+        aindex = AnnoyIndexer()
+        aindex.load(annoypath)
+    return aindex
+
+def test_model_byhuman(w2vmodel, testwl=testwl, topn=10, evalute=False):
+    #根据最相似结果人工评价模型质量
+    model = Word2Vec.load(w2vmodel) if isinstance(w2vmodel,str) else w2vmodel
+    print_mostsimi(model, testwl, top=topn)
+    if evalute:
+        ina = input("model score 1-9 : ")
+        f = open(DATAPATH + r'/model/gensim/modelscore.txt', 'a')
+        f.write("size=%d window=%d mincount=%d iter=%d sg=%d hs=%d ns=%d score=%s\n"
+                %(model.vector_size, model.window, model.min_count, model.iter, model.sg, model.hs, model.negative, ina))
+        f.close()
 
 def print_relationsimi(model,l,top=10):
     '''
@@ -145,79 +197,37 @@ def print_mostsimi(model, wordlist, annoyindex=None,top=10):
             print("word %s is not in the model!" %w)
     print("--------------time cost %.3f secs/word " %((time.time()-t)/float(len(wordlist))))
 
-def load_annoy(annoypath, model):
-    '''
-
-    :param annoypath: 
-    :type annoypath: 
-    :param model: 
-    :type model: Word2Vec
-    :return: 
-    :rtype: AnnoyIndexer
-    '''
-    if not os.path.exists(annoypath):
-        print("开始构建annoy索引:当前时间 : " + time.asctime(time.localtime(time.time())))
-        starttime12 = time.time()
-        aindex = AnnoyIndexer(model, 200)
-        print("构建索引完毕 %.2f secs" % (time.time() - starttime12))
-        # 保存annoy索引
-        print("开始保存annoy索引")
-        starttime13 = time.time()
-        aindex.save(annoypath)
-        print("保存索引完毕 %.2f secs" % (time.time() - starttime13))
-    else:
-        aindex = AnnoyIndexer()
-        aindex.load(annoypath)
-    return aindex
-
-def load_annoyindex(modelpath, annoypath):
-
-    model=Word2Vec.load(modelpath)
-    psvm=psutil.virtual_memory()
-    memto=psvm.total >> 20
-    pcent=psvm.percent
-    print("before del syn1 syn0 mem useage : %.2f MB" %(memto*pcent/100.0))
-    model.init_sims(replace=True)
-    psvm = psutil.virtual_memory()
-    memto = psvm.total >> 20
-    pcent = psvm.percent
-    print("after del syn1 syn0 mem useage : %.2f MB" % (memto * pcent / 100.0))
-
-    print_mostsimi(model, testwl)
-    aindex=load_annoy(annoypath, model)
-    print_mostsimi(model, testwl, aindex)
-
-def test_model(w2vmodel,testwl=testwl,topn=10,evalut=False):
-    model = Word2Vec.load(w2vmodel) if type(w2vmodel) is str else w2vmodel
-    print_mostsimi(model, testwl, top=topn)
-    if evalut:
-        ina = input("model score 1-9 : ")
-        f = open(datapath + r'/model/gensim/modelscore.txt', 'a')
-        f.write("size=%d window=%d mincount=%d iter=%d sg=%d hs=%d ns=%d score=%s\n"
-                %(model.vector_size, model.window, model.min_count, model.iter, model.sg, model.hs, model.negative, ina))
-        f.close()
-
-def run_single_train(argslist, inputpath, mnameprefix='test', justgetname=False):
-    (size, win, minc, iter, sg, hs, neg) = argslist
+def run_single_train(W2V_args, MySectence_args, ifannoy=False, mnameprefix='test', justgetname=False):
+    #运行单词模型训练
+    #根据参数，生成文件名等，之后送入训练
+    (size, win, minc, iter, sg, hs, neg) = W2V_args
+    (inputpath, startfrom, train_bigram, train_filename) = MySectence_args
     modeltype = 'sg' if sg else 'cbow'
     opttypehs = 'hs' if hs else ''
     opttypens = 'ns' if neg else ''
     modelname = 'w2v_%s_d%dw%dminc%diter%d_%s%s%s'% (mnameprefix, size, win, minc, iter, modeltype, opttypehs, opttypens)
-    print("inputpath=%s \n modelname=%s" %(inputpath,modelname))
+    print("inputpath=%s \nmodelname=%s" %(inputpath,modelname))
+
     if not justgetname:
         logger.info("Starting train model : %s" %modelname)
-        train_gensim(modelname, indatapath=inputpath, size=size, window=win,
-                     minc=minc, iterr=iter, sg=sg, hs=hs, neg=neg, annoy=True)
-
+        train_gensim(modelname,
+                     indatapath=inputpath,startfrom=startfrom,train_bigram=train_bigram,train_filename=train_filename,
+                     size=size, window=win,minc=minc, iterr=iter, sg=sg, hs=hs, neg=neg,
+                     annoy=ifannoy)
     return modelname
 
-def run_train(indatapat,mnameprefix='test'):
+def run_train(indatapath,mnameprefix='test'):
+    # 词向量训练入口，输入训练数据，内部设置训练参数
+    # 此处有很多参数，需要注意：1，输入数据 2，模型超参 3，
     #        dim,win,min,itr,sg,hs,neg
     # argls = [[300, 5, 2, 5, 0, 0, 5],
     #          [300, 8, 2, 5, 1, 0, 5]]
-    argls = [[200, 8, 8, 5, 0, 0, 5]] #用于外网词推荐接口：[200, 8, 9, 10, 1, 0, 5]
-    for argl in argls:
-        modelname = run_single_train(argl, inputpath=indatapat,mnameprefix=mnameprefix ,justgetname=False)
+    default_args = [[200, 5, 5, 5, 0, 0, 5]]
+    W2V_argls = [[200, 5, 8, 3, 0, 0, 5]] #用于外网词推荐接口：[200, 8, 9, 10, 1, 0, 5]
+    #             (input, Startfrom, bigram, train_filename)
+    MySectence_args=(indatapath, 1 , False , False)
+    for wvargl in W2V_argls:
+        modelname = run_single_train(wvargl,MySectence_args,mnameprefix=mnameprefix, ifannoy=False)
 
 
 if __name__ == '__main__':
@@ -225,9 +235,9 @@ if __name__ == '__main__':
     # print(indatapath)
     # run_train(indatapath,mnameprefix="kws1811_raw")
     # indatapath=path.path_dataraw+'/fn_kws1811bycode/I/'
-    indatapath = '../rec_files/CJFD16-19hexin_fulltext/segres/'
+    indatapath = './data/data_seg/alltype_KwsAbsTitle/'
     # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！
     # indatapath='./data/data_raw/fn_kwsraw1811bycode/tmp/'
-    run_train(indatapath, mnameprefix="cjfd1619hexinfullt_nofn")
+    run_train(indatapath, mnameprefix="kws1811_all_allKwsAbsTitle")
     # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！
     # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！

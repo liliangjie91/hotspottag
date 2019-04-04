@@ -4,7 +4,6 @@
 import codecs
 import sys
 #reload(sys)
-sys.setdefaultencoding('utf-8')
 try:
     import KBase
 except ImportError:
@@ -629,15 +628,15 @@ if __name__ == "__main__":
     # ksql4 = u'select 被引来源代码 from REFSTATTOTAL where 被引作者代码=00000014'
     # ksql5 = u'select 年,作者代码 from CJFDTOTAL where 作者代码=22644365'
     # ksql6 = u'select 出版日期,机构 from CJFDTOTAL where 文件名 =XTYD201105044'
-    ksql7 = u'select 篇名,中文关键词,年 from CJFDTOTAL WHERE 文件名=SCXH200806014'
-    ksql8 = u'select 篇名,作者 from CJFDTOTAL where 主题 like "多模多馈" order by 出版日期'
+    # ksql7 = u'select 篇名,中文关键词,年 from CJFDTOTAL WHERE 文件名=SCXH200806014'
+    # ksql8 = u'select 篇名,作者 from CJFDTOTAL where 主题 like "多模多馈" order by 出版日期'
     # ksql9 = u'select count(*) from CJFDTOTAL where smarts="信息化"'
     # ksql9_ = u'select COUNT(*) from CJFDTOTAL where smarts="安防"'
     # ksqlll = u"SELECT TOP 3000 篇名,关键词,文件名 FROM CJFD2006,CJFD2005 WHERE (主题 %='虚拟实现技术 虚拟软件' OR 题名 %='虚拟实现技术 虚拟软件') AND 出版日期>='2002-09-25' AND 出版日期<'2006-09-25' ORDER BY (ffd,'rank') DESC with set=locked"
-    ksl = u"SELECT count(*) FROM CJFDTOTAL WHERE (主题 %='虚拟现实' OR 题名 %='虚拟现实') AND 出版日期 between('2000-08-15', '2013-08-14') ORDER BY (ffd, 'rank') DESC with set=locked"
-    ksql = u'select 2012_6_FN, 2012_6_HDN from SYS_AUTHOR_FN_HDN where 作者代码=17753280'
-    kkk = u'SELECT 全文,中文摘要,文件名,篇名 FROM CJFDTOTAL WHERE (主题 %="矿物——光谱" OR 题名 %="矿物——光谱") AND 出版日期 BETWEEN ("1980-08-15", "2013-08-14") ORDER BY (ffd,"rank") DESC with set=locked'
-    sss = u'select 篇名,中文关键词,出版日期,全文,中文摘要 from CJFDTOTAL WHERE 文件名=BJSY200904003'
+    # ksl = u"SELECT count(*) FROM CJFDTOTAL WHERE (主题 %='虚拟现实' OR 题名 %='虚拟现实') AND 出版日期 between('2000-08-15', '2013-08-14') ORDER BY (ffd, 'rank') DESC with set=locked"
+    # ksql = u'select 2012_6_FN, 2012_6_HDN from SYS_AUTHOR_FN_HDN where 作者代码=17753280'
+    # kkk = u'SELECT 全文,中文摘要,文件名,篇名 FROM CJFDTOTAL WHERE (主题 %="矿物——光谱" OR 题名 %="矿物——光谱") AND 出版日期 BETWEEN ("1980-08-15", "2013-08-14") ORDER BY (ffd,"rank") DESC with set=locked'
+    sss = u'select 篇名,中文关键词,出版日期 from CJFDTOTAL WHERE 文件名=BJSY200904003'
     """利用连接池操作的cur模式检索数据库"""
     pk = PooledKBase(max_connections_cnt=50, mode='cur')
     thread_cur = pk.get_connection()
@@ -646,11 +645,11 @@ if __name__ == "__main__":
     pk.close_connection()
 
     """利用连接池操作的tpi模式检索数据库"""
-    pk = PooledKBase(max_connections_cnt=50, mode='tpi')
-    thread_cur = pk.get_connection()
-    ret = pk.tpiclient_execute_sql(sss, thread_cur, mode='batch', top=3000)
-    print(ret)
-    pk.close_connection()
+    # pk = PooledKBase(max_connections_cnt=50, mode='tpi')
+    # thread_cur = pk.get_connection()
+    # ret = pk.tpiclient_execute_sql(sss, thread_cur, mode='batch', top=3000)
+    # print(ret)
+    # pk.close_connection()
 
     # """不利用连接池tpi模式检索数据库"""
     # db = DataBase()

@@ -26,6 +26,11 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 # logger.addHandler(ch)
 
+'''
+聚类分析
+'''
+
+
 def vec_cluster(vecs,respath,ktype,true_k=None,subfix=''):
     # 对vecs数据做聚类kmeans，返回聚类结果和ch评分
     num_per_clsses=[[2000,500,200,100,50,40],
