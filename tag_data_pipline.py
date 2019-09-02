@@ -7,6 +7,7 @@ import util_common as uc
 import numpy as np
 import ml_cluster as mlclu
 import ml_prepare as mlpre
+import embed_wordvec as w2v
 import data_preprocess as dp
 import os
 import logging
@@ -26,11 +27,32 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 # logger.addHandler(ch)
 
+datapath=path.path_dataraw
+
 '''
 用户标签系统的全部流程
 '''
 
+def run00():
+    '''
+    1,训练语料生成词向量。语料一般包括：标题，摘要，中文关键词，二元中文关键词，机标关键词（全语料。注意无二元机标关键词，因为太大。）
+    :return: 
+    :rtype: 
+    '''
+    indatapath = datapath + '/data_seg/alltype_KwsAbsTitle/'
+    # !!!!!!重要!!!!!! 训练之前，一定要检查默认参数，注意train_gensim 函数中的参数设置！！！！
+    # indatapath='./data/data_raw/fn_kwsraw1811bycode/tmp/'
+    w2v.run_train(indatapath, mnameprefix="kws1811_allKwsAbsT_rawbigram")
+    modelpath = datapath + '/model/w2v_kws1811_allKwsAbsT_rawbigram_d200w5minc8iter3_cbowns/' # 词向量模型路径。全语料。关键词词频为>2
+
 def run01():
+    '''
+    1,
+    :return: 
+    :rtype: 
+    '''
+
+def run02():
     '''
     1,生成初级停用词 自选+一元词+二元词
     2,根据初级停用词生成 code-kws 表
@@ -73,20 +95,20 @@ def run01():
     topk = 0
     codesubfix = 'I'
     logger.info("getting code-[kes] dict topk = %d code subfix = %s" % (topk, codesubfix))
-    # tfidfStopwords=[]
-    # stopwords2use = set(stopwords_allready + stopwords_humanselect)
+    tfidfStopwords=[]
+    stopwords2use = set(stopwords_allready + stopwords_humanselect)
 
     # 加载fn-code文件，并转换成code-[fn]字典
-    # dic_code_fn = uc.load2dic_02(fn_fcode_path)
+    dic_code_fn = uc.load2dic_02(fn_fcode_path)
     # 加载fn-keywords文件，并转换成fn-[kw]字典
-    # dic_fn_kws = uc.load2dic(fn_kwords_path, value2list=True)
+    dic_fn_kws = uc.load2dic(fn_kwords_path, value2list=True)
     # 获取code-kws文件
-    # dic_code_kws = mlpre.get_kwsfromfn_bycode(dic_code_fn, dic_fn_kws,
-    #                                           respath=codekws_path, topkw=topk,
-    #                                           stopwords=stopwords2use, codesubfix=codesubfix)
+    dic_code_kws = mlpre.get_kwsfromfn_bycode(dic_code_fn, dic_fn_kws,
+                                              respath=codekws_path, topkw=topk,
+                                              stopwords=stopwords2use, codesubfix=codesubfix)
 
     # 根据上一步获取的文件，计算各code下词的tfidf
-    # dp.caculate_tfidf_code(dic_code_kws, idf_allwords, respath=tfidf_bycode_folder)
+    dp.caculate_tfidf_code(dic_code_kws, idf_allwords, respath=tfidf_bycode_folder)
 
     # 对每个code下的tfidf，做掐头去尾，获取剩余的词，并确定这些词的词向量，送入聚类
     if not os.path.exists(clusterpath):
@@ -101,4 +123,5 @@ def run01():
     mlclu.run03(ktype=3, basefolder=clusterpath)
 
 if __name__ == '__main__':
-    run01()
+    # run01()
+    pass

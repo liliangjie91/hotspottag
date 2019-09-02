@@ -158,7 +158,7 @@ def load_allcresjson(basefolder,aim_pattern):
     # basefolder = path.path_dataroot + '/cluster/w2vkw1811_sgns_code/data_wv'
     # aim_pattern = r'data_wv.*dic_word2center_.*json'
     logger.info('loading cluster res json file in : %s' %basefolder)
-    cresw2cdicfile = uc.getfileinfolder(basefolder, prefix=aim_pattern, recurse=True, maxdepth=2)
+    cresw2cdicfile = uc.getfileinfolder(basefolder, prefix=aim_pattern, recurse=2)
     allcresdic={}
     cnt=0
     for fj in cresw2cdicfile:

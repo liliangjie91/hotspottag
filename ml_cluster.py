@@ -120,7 +120,99 @@ def get_cluter_center(cres,vecs,words,respath,prefix):
     uc.savejson('%s/w2c/dic_word2center_%s.json' % (respath, prefix), dic_res)
     return dic_res
 
+def get_cluter_center_tfidf(cres,vecs,words,respath,prefix,tfidf=None,tf=None,idf=None):
+    # 获取聚类结果的类中心--选取类内tfidf前两大值。若多个，取离类中心最近的两个
+    if os.path.exists('%s/c2w/dic_center2words_%s_toptfidf.json' % (respath, prefix)):
+        print("res allready exists %s/c2w/dic_center2words_%s_toptfidf.json" % (respath, prefix))
+        return
+    assert len(cres) == len(vecs)
+    dic_cluser = {} #{类号：[样本id,...]}
+    dic_vecs={} #{类号：[[样本vec],[...]]}
+    dic_words={} #{类号：[[样本词],[...]]}
+    dic_tf={} #{类号：[[tf1],[...]]}
+    dic_idf={} #{类号：[[idf1],[...]]}
+    dic_tfidf = {}  # {类号：[[tfidf1],[...]]}
+    dic_center={} #{类号：中心词}
+    dic_res_w2c={} #{词：中心词}
+    dic_res_c2w={} #{中心词：[词1，词2，...]} 与dic_res_w2c相对应
+    mean_idf = np.mean(list(tfidf.values())) if tfidf else np.mean(list(idf.values()))
+    logger.info("getting dict of cluster_number and userlist...")
+    for i,v in enumerate(cres):  # 对所有的样本，转字典：{类号：[样本id]}
+        if v not in dic_cluser:
+            dic_cluser[v] = [i]
+            dic_vecs[v] = [vecs[i]]
+            dic_words[v] = [words[i]]
+            if tfidf:
+                dic_tfidf[v] = [tfidf[words[i]] if words[i] in tfidf else mean_idf]
+            else:
+                dic_tf[v] = [tf[words[i]] if words[i] in tf else 1]
+                dic_idf[v] = [idf[words[i]] if words[i] in idf else mean_idf]
+        else:
+            tmpli = dic_cluser[v]
+            tmpli.append(i)
+            dic_cluser[v] = tmpli
 
+            tmplv = dic_vecs[v]
+            tmplv.append(vecs[i])
+            dic_vecs[v] = tmplv
+
+            tmplw = dic_words[v]
+            tmplw.append(words[i])
+            dic_words[v] = tmplw
+
+            if tfidf:
+                tmptfidf = dic_tfidf[v]
+                tmptfidf.append(tfidf[words[i]] if words[i] in tfidf else mean_idf)
+                dic_tfidf[v] = tmptfidf
+            else:
+                tmptf = dic_tf[v]
+                tmptf.append(tf[words[i]] if words[i] in tf else 1)
+                dic_tf[v] = tmptf
+                tmpidf = dic_idf[v]
+                tmpidf.append(idf[words[i]] if words[i] in idf else mean_idf)
+                dic_idf[v]=tmpidf
+
+    logger.info("getting top tfidf...")
+    for clust_id in dic_cluser.keys():  # 对所有类号，计算类中心和类中心最近id
+        # logger.info("cluster num: %d" %j)
+        tmp_words = dic_words[clust_id]
+        if tfidf:
+            tmp_tfidf_l = dic_tfidf[clust_id]
+        else:
+            tmp_tf_l = dic_tf[clust_id]
+        # tmp_tf_all = np.sum(tmp_tf_l)
+            tmp_idf_l = dic_idf[clust_id]
+            tmp_tfidf_l = np.multiply(tmp_tf_l,tmp_idf_l)
+        tmp_w_tfidf = list(zip(tmp_words,tmp_tfidf_l))
+        tmp_w_tfidf_sorted = sorted(tmp_w_tfidf,key=lambda x:x[1],reverse=True)[:2]
+        tag_l=[tmp_w_tfidf_sorted[0][0]]
+        if len(tmp_w_tfidf_sorted)>1:
+            tag_l.append(tmp_w_tfidf_sorted[1][0])
+        tags=tag_l[0] #top1 tfidf 词做tag
+        # tags=';'.join(tag_l) #top2 tfidf 词做tag
+        dic_center[clust_id]=tags
+        dic_res_c2w[tags]=tmp_words
+    uc.savejson('%s/c2w/dic_center2words_%s_toptfidf.json' % (respath, prefix), dic_res_c2w)
+    uc.json2txt(dic_res_c2w,'%s/c2w/txt_dic_center2words_%s_toptfidf.txt' % (respath, prefix))
+    del dic_res_c2w
+    for i,w in enumerate(words):
+        dic_res_w2c[w]=dic_center[cres[i]]
+    uc.savejson('%s/w2c/dic_word2center_%s_toptfidf.json' % (respath, prefix), dic_res_w2c)
+    return dic_res_w2c
+
+def run00():
+    # 普通聚类流程：获取vec，words(从gensim vector文件)--按不同k聚类--保存结果
+    vecpath = path.path_model + '/w2v_kws1811_d300w8minc1iter5_sgns/w2v_kws1811_d300w8minc1iter5_sgns.vector'
+    # vecpath=path.path_model+'/w2v_kws1811_d300w5minc3iter5_cbowns/w2v_kws1811_d300w5minc3iter5_cbowns.vector'
+    fn_kwords_path = path.path_dataroot + '/other/fn_kws_1811'
+    clusterpath = path.path_dataroot + '/cluster/w2vkw1811_sgns'
+    words, vecs = mlpre.get_w_v_all(vecpath)
+    vecl = vecs.tolist()
+    del vecs
+    for k in [50000, 10000, 5000, 1000]:
+        kmscore, cres = vec_cluster(vecl, clusterpath, 0, true_k=k)
+        dic_word2center = get_cluter_center(cres, vecl, words, clusterpath, 'k%05d' % k)
+    del vecl, words
 
 def run01():
     #普通聚类流程：获取vec，words(从gensim vector文件)--按不同k聚类--保存结果
@@ -180,7 +272,7 @@ def run02(subfix=None):
 def run03(ktype,basefolder=None):
     #根据run02中获取的按专题子栏目代码分类的words，vecs，再聚类(此处不再设k值，而是自动生成k,而自动生成k有几种模式，通过ktype来选择)
 
-    kwordsfile_bycode = uc.getfileinfolder(basefolder, prefix='data_wv.*words_.*txt', recurse=True, maxdepth=2)
+    kwordsfile_bycode = uc.getfileinfolder(basefolder, prefix='data_wv.*words_.*txt', recurse=2)
     cnt = 0
     # 路径设置
     resfoldername = "cres%02d" %ktype
@@ -218,6 +310,26 @@ def run03(ktype,basefolder=None):
             logger.info("cluster res : cres_%s_kxxx.txt allready exist!" %code)
     logger.info("clustering times : %d/%d" %(cnt,len(kwordsfile_bycode)))
 
+def run04(base_folder,crestype='cres01'):
+    #单独获取类中心。在聚类结果cres获取之后，根据不同算法获取类标签
+    wvpath=base_folder+'/data_wv/'
+    crespath=base_folder+ '/' + crestype +'/cres/'
+    cresfiles=uc.getfileinfolder(crespath,'cres')
+    tfidf_bycode_folder = './data/data_raw/fn_kwsraw1811bycode/tfidf/bycode/'
+    for cresf in cresfiles:
+        logger.info("for file : %s" %cresf)
+        filename = os.path.split(cresf)[1]
+        code = filename[5:filename.rfind('_')]
+        code01=code[:code.find('_')] if len(code)>4 else code
+        cres = uc.load2list(cresf)
+        words = uc.load2list(wvpath+'/%s/words_%s.txt' %(code01,code))
+        vecs = np.loadtxt(wvpath+'/%s/vecs_%s.txt' %(code01,code)).tolist()
+        tfidfpath=tfidf_bycode_folder+'/%s.json' %code
+        if os.path.exists(tfidfpath):
+            tfidf = uc.loadjson(tfidfpath)
+            get_cluter_center_tfidf(cres,vecs,words,respath='%s/%s/' %(base_folder,crestype),prefix=filename[5:-4],tfidf=tfidf)
+
+
 def runall(subfix=None):
     version = "20190306"
     print("\n\n***************version=%s***********\n\n" % version)
@@ -232,6 +344,9 @@ def runall(subfix=None):
 
 if __name__ == '__main__':
     # run01()
-    runall(subfix='onetf1_bitf6_0')
+    # runall(subfix='onetf1_bitf6_0')
     # runall(subfix='onetf10_bitf10')
     # run02()
+    run04(base_folder='./data/cluster/bigram_I_onetf1_bitf6_1_stoped2/embed_allkwsAbsTitle',crestype='cres01')
+    run04(base_folder='./data/cluster/bigram_I_onetf1_bitf6_1_stoped2/embed_allkwsAbsTitle', crestype='cres02')
+    run04(base_folder='./data/cluster/bigram_I_onetf1_bitf6_1_stoped2/embed_allkwsAbsTitle', crestype='cres03')

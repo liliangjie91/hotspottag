@@ -244,7 +244,8 @@ def get_bigram_words(infolder, resfile, justbigram=False, centerword=False, just
     :return: 
     :rtype: 
     '''
-    files = uc.getfileinfolder(infolder)
+
+    files = uc.getfileinfolder(infolder) if os.path.isdir(infolder) else [infolder]
     raw_curpus=[]
     bigram_curpus = []
     linecnt, wordcnt = -1, 0
@@ -431,7 +432,11 @@ if __name__ == '__main__':
     appendStopw= path.path_dataraw + '/fn_kwsraw1811bycode/bigram_I_kwsraw_justbigram_stopwords_tf3.txt'
     stopwords_step1 = path.path_dataraw + '/fn_kwsraw1811bycode/stopword/stopws_allByCode_o1b6_tf_step1.txt'
     code_kws_stoped1 = path.path_dataraw + '/fn_kwsraw1811bycode/codeKwsDict/bigram_I_codekws_stoped1.json'
-    # getbigramwords(fnkwsfolder,fnkwsbigram,justbigram=True,onlyonegram=True)
+    get_bigram_words('./data/data_seg/alltype_KwsAbsTitle/kws_jb_1811.txt',
+                     resfile='./data/data_seg/alltype_KwsAbsTitle/kws_jb_1811_bigram.txt',justbigram=True)
+    get_bigram_words('./data/data_seg/alltype_KwsAbsTitle/kws_raw_1811.txt',
+                     resfile='./data/data_seg/alltype_KwsAbsTitle/kws_raw_1811_bigram.txt',justbigram=True)
+
     # idf=caculate_idf(fnkwsbigram, fnkwsbg_tfidf)
     # tf=caculate_tf(fnkwsbigram, fnkwsbg_tfidf)
     # caculate_tfidf(tf,idf,fnkwsbg_tfidf)
@@ -453,5 +458,5 @@ if __name__ == '__main__':
     # caculate_tfidf(tf, idf, fnkwsbg_tfidf)
     # caculate_tfidf_code(code_kws_stoped1,idf_allwords,
     #                     respath=path.path_dataraw+'/fn_kwsraw1811bycode/tfidf/bycode')
-    map_running('./data/data_seg/title/')
+    # map_running('./data/data_seg/title/')
     pass

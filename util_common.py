@@ -41,7 +41,7 @@ def get_code_field(code,dic_codefield):
     res1 = ';'.join(l1)
     return res0,res1
 
-def getfileinfolder(folderpath, prefix=None, recurse=False, sort=True, maxdepth=3, curdepth=0):
+def getfileinfolder(folderpath, prefix=None, recurse=0, sort=True, curdepth=0):
     '''
     返回文件夹内符合prefix前缀的文件名
     :param folderpath: 文件夹
@@ -52,21 +52,22 @@ def getfileinfolder(folderpath, prefix=None, recurse=False, sort=True, maxdepth=
     :rtype: list
     '''
     res=[]
-    if recurse and curdepth>=maxdepth:
+    if recurse and curdepth>=recurse:
         return []
     if os.path.exists(folderpath):
         for file in os.listdir(folderpath):
             file_p = os.path.join(folderpath,file)
             if os.path.isfile(file_p):
-                if prefix and re.search(prefix,file_p):
+                if prefix and re.search(prefix,file):
                     res.append(file_p)
                 if not prefix:
                     res.append(file_p)
             elif os.path.isdir(file_p):
                 if recurse:
-                    res.extend(getfileinfolder(file_p, prefix=prefix, recurse=recurse, sort=False, maxdepth=maxdepth, curdepth=curdepth + 1))
+                    res.extend(getfileinfolder(file_p, prefix=prefix, recurse=recurse, sort=False, curdepth=curdepth + 1))
     if sort:
-        res=sorted(res,key=lambda x:os.path.getmtime(x))
+        # res=sorted(res,key=lambda x:os.path.getmtime(x))
+        res = sorted(res)
     return res
 
 def get_FileSize(filePath):
@@ -305,4 +306,7 @@ if __name__ == '__main__':
     # json2txt('./data/cluster/bigram_I/cres03/c2w/dic_center2words_I138_1_00717.json',
     #          './data/cluster/bigram_I/cres03/c2w/txt_dic_center2words_I138_1_00717.txt')
     # print(extend2bigram(['id','w1', 'w2', 'w3','w4'],'I138',start=1))
-    pass
+    res=getfileinfolder('../userInterestDynamic/data/data_seg',prefix='txt',recurse=2)
+    for i in res:
+        print(i)
+    print(len(res))
